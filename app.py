@@ -282,8 +282,8 @@ DEFAULT_AVERAGE_SPEED: dict = {
     'airplane_normal': 70
 }
 
-RUNNING_SPEED: int = 5. 612          # 站内换乘速度
-TRANSFER_SPEED: int = 4. 317         # 出站换乘速度
+RUNNING_SPEED: int = 5.612          # 站内换乘速度
+TRANSFER_SPEED: int = 4.317         # 出站换乘速度
 WILD_WALKING_SPEED: int = 2.25      # 非出站换乘（越野）速度
 
 # 全局变量
