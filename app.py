@@ -1344,11 +1344,11 @@ def generate_html(route_type: RouteType, every_route_time: list,
     travelling_time = str(strftime('%H:%M:%S', gm_travelling))
     
     # 去除前导零
-    if int(full_time. split(':', maxsplit=1)[0]) == 0:
-        full_time = ''. join(full_time.split(':', maxsplit=1)[1:])
+    if int(full_time.split(':', maxsplit=1)[0]) == 0:
+        full_time = ''.join(full_time.split(':', maxsplit=1)[1:])
     if int(waiting_time_str.split(':', maxsplit=1)[0]) == 0:
         waiting_time_str = ''.join(waiting_time_str.split(':', maxsplit=1)[1:])
-    if int(travelling_time. split(':', maxsplit=1)[0]) == 0:
+    if int(travelling_time.split(':', maxsplit=1)[0]) == 0:
         travelling_time = ''.join(travelling_time.split(':', maxsplit=1)[1:])
     
     html_parts = []
@@ -1358,4 +1358,240 @@ def generate_html(route_type: RouteType, every_route_time: list,
     if route_type == RouteType.IN_THEORY:
         html_parts.append(f'<p><strong>总用时 Total Time:</strong> {full_time}</p>')
     else:
-        html_parts.append(f'<p><strong>总用时 Total Time:</strong>
+        html_parts.append(f'<p><strong>总用时 Total Time:</strong> {full_time}</p>')
+        html_parts.append(f'<p><strong>其中乘车时间 Travelling Time:</strong> {travelling_time}</p>')
+        html_parts.append(f'<p><strong>其中等车时间 Waiting Time:</strong> {waiting_time_str}</p>')
+    html_parts.append('</div>')
+    
+    # 添加路线步骤
+    last_station = None
+    for i, route_data in enumerate(every_route_time):
+        station_from, station_to, color, route_name, terminus, duration, waiting, sep_waiting, train_type = route_data
+        
+        # 处理终点站显示
+        if isinstance(terminus, tuple) and len(terminus) > 0:
+            if terminus[0] is True:  # 环形路线
+                terminus_display = ' '.join(terminus[1:])
+            else:
+                terminus_display = f"{terminus[0]} 方向 To {terminus[1]}"
+        else:
+            terminus_display = str(terminus)
+        
+        # 格式化时间
+        duration_str = str(strftime('%M:%S', gmtime(duration)))
+        waiting_str = str(strftime('%M:%S', gmtime(waiting)))
+        
+        # 如果是新起点站，显示车站
+        if station_from != last_station:
+            html_parts.append(f'<div class="route-step">')
+            html_parts.append(f'<div class="station">🚉 {station_from}</div>')
+            last_station = station_from
+        else:
+            html_parts.append(f'<div class="route-step" style="margin-left: 20px;">')
+            html_parts.append(f'<div style="margin-bottom: 5px;">或</div>')
+        
+        # 路线信息
+        html_parts.append(f'<div class="route-info">')
+        html_parts.append(f'<div><strong>路线:</strong> {route_name}</div>')
+        
+        if train_type is not None:  # 不是步行
+            html_parts.append(f'<div><strong>方向:</strong> {terminus_display}</div>')
+            html_parts.append(f'<div><strong>乘车时间:</strong> {duration_str}</div>')
+            
+            if DETAIL and route_type == RouteType.WAITING and sep_waiting is not None:
+                interval_str = str(strftime('%M:%S', gmtime(sep_waiting)))
+                html_parts.append(f'<div><strong>等车时间:</strong> {waiting_str}</div>')
+                html_parts.append(f'<div><strong>发车间隔:</strong> {interval_str}</div>')
+            elif DETAIL and route_type == RouteType.WAITING:
+                html_parts.append(f'<div><strong>等车时间:</strong> {waiting_str}</div>')
+        else:  # 步行
+            html_parts.append(f'<div><strong>步行时间:</strong> {duration_str}</div>')
+        
+        html_parts.append('</div>')  # 结束route-info
+        html_parts.append('</div>')  # 结束route-step
+    
+    # 添加终点站
+    if every_route_time:
+        last_route = every_route_time[-1]
+        html_parts.append(f'<div class="route-step">')
+        html_parts.append(f'<div class="station">🚉 {last_route[1]}</div>')
+        html_parts.append('</div>')
+    
+    # 添加版本信息
+    html_parts.append('<div style="margin-top: 20px; font-size: 12px; color: #666;">')
+    html_parts.append(f'<p>车站数据版本 Station data version: {version1}</p>')
+    html_parts.append(f'<p>路线数据版本 Route data version: {version2}</p>')
+    html_parts.append('</div>')
+    
+    return ''.join(html_parts)
+
+
+
+
+def main(station1: str, station2: str, LINK: str,
+         LOCAL_FILE_PATH, INTERVAL_PATH, BASE_PATH, PNG_PATH,
+         MAX_WILD_BLOCKS: int = 1500,
+         TRANSFER_ADDITION: dict[str, list[str]] = {},
+         WILD_ADDITION: dict[str, list[str]] = {},
+         STATION_TABLE: dict[str, str] = {},
+         ORIGINAL_IGNORED_LINES: list = [], UPDATE_DATA: bool = False,
+         GEN_ROUTE_INTERVAL: bool = False, IGNORED_LINES: list = [],
+         AVOID_STATIONS: list = [], CALCULATE_HIGH_SPEED: bool = True,
+         CALCULATE_BOAT: bool = True, CALCULATE_WALKING_WILD: bool = False,
+         ONLY_LRT: bool = False, IN_THEORY: bool = False, DETAIL: bool = False,
+         MTR_VER: int = 3, G=None, gen_image=True, show=False,
+         cache=True) -> Union[str, bool, None]:
+    '''
+    主函数。可以在自己的代码中调用。
+    输出：
+    False -- 找不到路线
+    None -- 车站名称错误，请重新输入
+    其他 -- 元组 (图片对象, 生成图片的base64字符串)
+    '''
+    if MTR_VER not in [3, 4]:  # 检查MTR版本
+        raise NotImplementedError('MTR_VER should be 3 or 4')
+
+    # 初始化设置
+    IGNORED_LINES += ORIGINAL_IGNORED_LINES  # 合并忽略的路线
+    STATION_TABLE = {x.lower(): y.lower() for x, y in STATION_TABLE.items()}  # 标准化车站表
+    if LINK.endswith('/index.html'):
+        LINK = LINK.rstrip('/index.html')  # 清理链接
+
+    # 获取或更新数据
+    if UPDATE_DATA is True or (not os.path.exists(LOCAL_FILE_PATH)):
+        if LINK == '':
+            raise ValueError('Railway System Map link is empty')
+
+        data = fetch_data(LINK, LOCAL_FILE_PATH, MTR_VER)  # 获取数据
+    else:
+        with open(LOCAL_FILE_PATH, encoding='utf-8') as f:
+            data = json.load(f)  # 加载本地数据
+
+    # 生成路线间隔数据
+    if GEN_ROUTE_INTERVAL is True or (not os.path.exists(INTERVAL_PATH)):
+        if LINK == '':
+            raise ValueError('Railway System Map link is empty')
+
+        gen_route_interval(LOCAL_FILE_PATH, INTERVAL_PATH, LINK, MTR_VER)  # 生成间隔数据
+
+    # 获取版本信息
+    version1 = strftime('%Y%m%d-%H%M',
+                        gmtime(os.path.getmtime(LOCAL_FILE_PATH)))  # 车站数据版本
+    version2 = strftime('%Y%m%d-%H%M',
+                        gmtime(os.path.getmtime(INTERVAL_PATH)))  # 路线数据版本
+
+    # 确定路线类型
+    if IN_THEORY is True:
+        route_type = RouteType.IN_THEORY  # 理论路线
+    else:
+        route_type = RouteType.WAITING  # 实际路线
+
+    # 创建图
+    if G is None:
+        G = create_graph(data, IGNORED_LINES, CALCULATE_HIGH_SPEED,
+                         CALCULATE_BOAT, CALCULATE_WALKING_WILD, ONLY_LRT,
+                         AVOID_STATIONS, route_type, ORIGINAL_IGNORED_LINES,
+                         INTERVAL_PATH, version1, version2, LOCAL_FILE_PATH,
+                         STATION_TABLE, WILD_ADDITION, TRANSFER_ADDITION,
+                         MAX_WILD_BLOCKS, MTR_VER, cache)  # 创建图
+
+    # 查找最短路线
+    shortest_path, shortest_distance, waiting_time, riding_time, ert = \
+        find_shortest_route(G, station1, station2,
+                            data, STATION_TABLE, MTR_VER)
+
+    if gen_image is False:  # 不生成图像
+        return ert, shortest_distance
+
+    if shortest_path in [False, None]:  # 无路径或错误
+        return shortest_path
+
+    # 使用新的HTML生成函数替代原来的图像生成
+    return generate_html(route_type, ert, shortest_distance, riding_time,
+                         waiting_time, version1, version2, DETAIL)
+
+# 添加Flask路由
+@app.route('/')
+def index():
+    '''显示主页面'''
+    return render_template_string(HTML_TEMPLATE)
+
+@app.route('/find-route', methods=['POST'])
+def find_route():
+    '''处理路径查找请求'''
+    try:
+        data = request.json
+        station1 = data.get('startStation')
+        station2 = data.get('endStation')
+        MTR_VER = data.get('mtrVersion', 3)
+        route_type_str = data.get('routeType', 'WAITING')
+        CALCULATE_HIGH_SPEED = data.get('calculateHighSpeed', True)
+        CALCULATE_BOAT = data.get('calculateBoat', True)
+        CALCULATE_WALKING_WILD = data.get('calculateWalkingWild', False)
+        ONLY_LRT = data.get('onlyLRT', False)
+        DETAIL = data.get('detail', False)
+        
+        # 转换路线类型
+        IN_THEORY = (route_type_str == 'IN_THEORY')
+        
+        # 这里需要设置你的实际文件路径和其他参数
+        LINK = 'https://letsplay.minecrafttransitrailway.com/system-map'  # 设置为你的MTR地图链接
+        link_hash = hashlib.md5(LINK.encode('utf-8')).hexdigest()
+        LOCAL_FILE_PATH = f'mtr-station-data-{link_hash}-{MTR_VER}.json'
+        INTERVAL_PATH = f'mtr-route-data-{link_hash}-{MTR_VER}.json'
+        BASE_PATH = 'mtr_pathfinder_data'
+        PNG_PATH = 'mtr_pathfinder_data'
+        
+        # 调用主函数
+        result = main(
+            station1=station1,
+            station2=station2,
+            LINK=LINK,
+            LOCAL_FILE_PATH=LOCAL_FILE_PATH,
+            INTERVAL_PATH=INTERVAL_PATH,
+            BASE_PATH=BASE_PATH,
+            PNG_PATH=PNG_PATH,
+            MAX_WILD_BLOCKS=1500,
+            TRANSFER_ADDITION={},
+            WILD_ADDITION={},
+            STATION_TABLE={},
+            ORIGINAL_IGNORED_LINES=[],
+            UPDATE_DATA=False,
+            GEN_ROUTE_INTERVAL=False,
+            IGNORED_LINES=[],
+            AVOID_STATIONS=[],
+            CALCULATE_HIGH_SPEED=CALCULATE_HIGH_SPEED,
+            CALCULATE_BOAT=CALCULATE_BOAT,
+            CALCULATE_WALKING_WILD=CALCULATE_WALKING_WILD,
+            ONLY_LRT=ONLY_LRT,
+            IN_THEORY=IN_THEORY,
+            DETAIL=DETAIL,
+            MTR_VER=MTR_VER,
+            gen_image=True,
+            show=False,
+            cache=True
+        )
+        
+        if result is False:
+            return jsonify({'success': False, 'error': '找不到路线'})
+        elif result is None:
+            return jsonify({'success': False, 'error': '车站名称错误，请重新输入'})
+        else:
+            return jsonify({'success': True, 'html': result})
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'发生错误: {str(e)}'})
+
+
+
+
+
+def run():
+    '''运行Flask应用'''
+    print("启动MTR路径查找器Web服务...")
+    print("访问 http://localhost:5000 使用路径查找功能")
+    app.run(debug=True, host='0.0.0.0', port=5000)
+
+
+if __name__ == '__main__':
+    run()  # 程序入口点
