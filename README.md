@@ -1,1 +1,1 @@
-pip3 install -U pillow networkx requests flask opencc-python-reimplemented
+pip3 install -U networkx requests flask opencc-python-reimplemented
