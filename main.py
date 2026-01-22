@@ -1,256 +1,84 @@
-'''
+'''   
+Minecraft Transit Railway寻路程序
 Find paths between two stations for Minecraft Transit Railway. 
 '''
 
-# 禁用SSL验证 (Python 3.13+) - 必须在导入requests之前设置
-import os
-os.environ['CURL_CA_BUNDLE'] = ''
-os.environ['SSL_CERT_FILE'] = ''
+#禁用SSL验证 (Python 3.13+) - 必须在导入requests之前设置
+import os   #操作系统功能模块
+os.environ['CURL_CA_BUNDLE'] = ''   #禁用CURL证书验证
+os.environ['SSL_CERT_FILE'] = ''   #禁用SSL证书文件验证
 
-# 抑制SSL警告
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+#导入各种必要的库
+from difflib import SequenceMatcher   #用于字符串相似度比较
+from enum import Enum   #枚举类型定义
+from math import gcd, sqrt   #数学函数：最大公约数、平方根
+from operator import itemgetter   #用于排序操作
+from statistics import median_low   #统计学中位数计算
+from threading import Thread, BoundedSemaphore   #多线程和信号量控制
+from time import gmtime, strftime, time   #时间处理函数
+from typing import Union   #类型提示支持
+from queue import Queue   #队列数据结构
+import hashlib   #哈希算法库
+import json   #JSON数据处理
+import pickle   #Python对象序列化
+import re   #正则表达式处理
 
-# 导入各种必要的库
-from difflib import SequenceMatcher  # 用于字符串相似度比较
-from enum import Enum  # 枚举类型
-from math import gcd, sqrt  # 数学函数：最大公约数、平方根
-from operator import itemgetter  # 用于排序
-from statistics import median_low  # 统计学中位数计算
-from threading import Thread, BoundedSemaphore  # 多线程和信号量
-from time import gmtime, strftime, time  # 时间处理
-from typing import Union  # 类型提示
-from queue import Queue  # 队列
-import hashlib  # 哈希算法
-import json  # JSON处理
-import pickle  # 对象序列化
-import re  # 正则表达式
+#第三方库导入
+from opencc import OpenCC   #简繁中文转换工具
+import networkx as nx   #图论和网络分析库
+import requests   #HTTP请求库
 
-# 第三方库导入
-from opencc import OpenCC  # 简繁中文转换
-import networkx as nx  # 图论和网络分析
-import requests  # HTTP请求
+#添加Flask相关导入
+from flask import Flask, render_template_string, request, jsonify, session   #Flask Web框架组件
 
-# 添加Flask相关导入
-from flask import Flask, render_template_string, request, jsonify, session
-
-# 创建Flask应用
+#创建Flask应用实例
 app = Flask(__name__)
-app.secret_key = 'mtr-pathfinder-secret-key-2024'  # 用于session加密
+app.secret_key = 'mtr-pathfinder-secret-key-2024'   #用于session加密的密钥
 
-# ==================== 数据更新相关函数 ====================
-def fetch_data(link: str, LOCAL_FILE_PATH, MTR_VER) -> str:
-    '''
-    Fetch all the route data and station data.
-    '''
-    import urllib3
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-    
-    # 创建不验证SSL的HTTP连接池
-    http = urllib3.PoolManager(
-        cert_reqs='CERT_NONE',
-        ssl_version='PROTOCOL_TLS_CLIENT'
-    )
-    
-    if MTR_VER == 3:
-        link = link.rstrip('/') + '/data'
-        response = http.request('GET', link)
-        if response.status != 200:
-            raise Exception(f"获取数据失败，HTTP状态码: {response.status}")
-        data = json.loads(response.data.decode('utf-8'))
-        # MTR 3数据直接保存，不做转换
-        if not data or (isinstance(data, list) and len(data) == 0):
-            raise Exception("获取的数据为空")
-        if isinstance(data, list) and len(data) > 0 and 'stations' in data[0]:
-            with open(LOCAL_FILE_PATH, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=4, ensure_ascii=False)
-            return LOCAL_FILE_PATH
-        else:
-            raise Exception("MTR 3数据格式不正确")
-    else:
-        link = link.rstrip('/') + \
-            '/mtr/api/map/stations-and-routes?dimension=0'
-        response = http.request('GET', link)
-        if response.status != 200:
-            raise Exception(f"获取数据失败，HTTP状态码: {response.status}")
-        response_data = json.loads(response.data.decode('utf-8'))
-        if 'data' not in response_data:
-            raise Exception("获取数据失败，返回数据中没有'data'字段")
-        data = response_data['data']
-
-        data_new = {'routes': [], 'stations': {}}
-        i = 0
-        for d in data['stations']:
-            d['station'] = hex(i)[2:]
-            data_new['stations'][d['id']] = d
-            i += 1
-
-        x_dict = {x['id']: [] for x in data['stations']}
-        z_dict = {x['id']: [] for x in data['stations']}
-        for route in data['routes']:
-            if route['circularState'] == 'CLOCKWISE':
-                route['circular'] = 'cw'
-            elif route['circularState'] == 'ANTICLOCKWISE':
-                route['circular'] = 'ccw'
-            else:
-                route['circular'] = ''
-
-            route['durations'] = [round(x / 1000) for x in route['durations']]
-            for station in route['stations']:
-                x_dict[station['id']] += [station['x']]
-                z_dict[station['id']] += [station['z']]
-
-            data_new['routes'].append(route)
-
-        for station_id, xs in x_dict.items():
-            zs = z_dict[station_id]
-            if len(xs) > 0:
-                data_new['stations'][station_id]['x'] = round(sum(xs) / len(xs))
-            else:
-                data_new['stations'][station_id]['x'] = 0
-            if len(zs) > 0:
-                data_new['stations'][station_id]['z'] = round(sum(zs) / len(zs))
-            else:
-                data_new['stations'][station_id]['z'] = 0
-
-        data = data_new
-
-    # 验证数据有效性
-    if not data or (isinstance(data, list) and len(data) == 0):
-        raise Exception("获取的数据为空")
-    if isinstance(data, dict) and 'stations' not in data:
-        raise Exception("获取的数据格式不正确，缺少'stations'字段")
-
-    # 保存数据
-    with open(LOCAL_FILE_PATH, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
-
-    return LOCAL_FILE_PATH
-
-
-def fetch_interval_data(station_id: str, LINK: str) -> None:
-    '''
-    Fetch interval data for a station.
-    '''
-    import urllib3
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-    
-    with semaphore:
-        link = f'{LINK.rstrip("/")}/mtr/api/station/timetable/{station_id}'
-        http = urllib3.PoolManager(cert_reqs='CERT_NONE')
-        while True:
-            try:
-                response = http.request('GET', link)
-                data = json.loads(response.data.decode('utf-8'))
-                if data['data'] is not None:
-                    ROUTE_INTERVAL_DATA.put((station_id, (data['data']['stationName'], data['data']['routes'])))
-                    break
-            except Exception:
-                pass
-
-
-def gen_route_interval(LOCAL_FILE_PATH, INTERVAL_PATH, LINK, MTR_VER) -> None:
-    '''
-    Generate all the interval data.
-    '''
-    with open(LOCAL_FILE_PATH, encoding='utf-8') as f:
-        data = json.load(f)
-
-    if MTR_VER == 3:
-        threads: list[Thread] = []
-        stations = data[0]['stations']
-        station_ids = list(stations.keys()) if isinstance(stations, dict) else stations
-        for station_id in station_ids:
-            t = Thread(target=fetch_interval_data, args=(station_id, LINK))
-            t.start()
-            threads.append(t)
-        for t in threads:
-            t.join()
-
-        interval_data_list = []
-        while not ROUTE_INTERVAL_DATA.empty():
-            interval_data_list.append(ROUTE_INTERVAL_DATA.get())
-
-        arrivals = dict(interval_data_list)
-        dep_dict_per_route: dict[str, list] = {}
-        dep_dict_per_route_: dict[str, list] = {}
-        for t, arrivals in arrivals.items():
-            dep_dict_per_station: dict[str, list] = {}
-            for arrival in arrivals[:-1]:
-                name = arrival['name']
-                if name in dep_dict_per_station:
-                    dep_dict_per_station[name] += [arrival['arrival']]
-                else:
-                    dep_dict_per_station[name] = [arrival['arrival']]
-
-            for route in arrival:
-                if route in dep_dict_per_route:
-                    dep_dict_per_route[route] += dep_dict_per_station[route]
-                else:
-                    dep_dict_per_route[route] = dep_dict_per_station[route]
-
-        for route, dep in dep_dict_per_route.items():
-            dep = sorted(dep)
-            dep_diffs = []
-            for i in range(len(dep) - 1):
-                dep_diffs.append(dep[i + 1] - dep[i])
-            if len(dep_diffs) > 0:
-                dep_dict_per_route_[route] = round(median_low(dep_diffs))
-            else:
-                dep_dict_per_route_[route] = 0
-
-        # 保存间隔数据
-        with open(INTERVAL_PATH, 'w', encoding='utf-8') as f:
-            json.dump(dep_dict_per_route_, f, indent=4, ensure_ascii=False)
-    else:
-        # MTR_VER == 4 的情况，创建空的间隔数据
-        with open(INTERVAL_PATH, 'w', encoding='utf-8') as f:
-            json.dump({}, f, indent=4, ensure_ascii=False)
-
-
+#=================== 数据更新相关函数 ====================
 def update_mtr_data(LINK: str, MTR_VER: int, LOCAL_FILE_PATH: str, INTERVAL_PATH: str, BASE_PATH: str) -> bool:
-    '''
-    更新MTR数据（车站和线路数据）
-    '''
-    try:
-        os.makedirs(BASE_PATH, exist_ok=True)
-        
-        # 更新车站数据
-        fetch_data(LINK, LOCAL_FILE_PATH, MTR_VER)
-        
-        # 验证车站数据文件已创建
-        if not os.path.exists(LOCAL_FILE_PATH):
-            raise Exception(f"车站数据文件创建失败: {LOCAL_FILE_PATH}")
-        
-        # 更新线路间隔数据
-        gen_route_interval(LOCAL_FILE_PATH, INTERVAL_PATH, LINK, MTR_VER)
-        
-        # 验证间隔数据文件已创建
-        if not os.path.exists(INTERVAL_PATH):
-            raise Exception(f"路线间隔数据文件创建失败: {INTERVAL_PATH}")
-        
-        return True
-    except Exception as e:
-        print(f"数据更新错误: {e}")
-        return False
+   '''   
+   更新MTR数据（车站和线路数据）
+   '''
+   try:
+      os.makedirs(BASE_PATH, exist_ok=True)   #创建基础目录
+      
+      #   #更新车站数据
+      fetch_data(LINK, LOCAL_FILE_PATH, MTR_VER)   #获取车站和线路数据
+      
+      #   #验证车站数据文件已创建
+      if not os.path.exists(LOCAL_FILE_PATH):
+         raise Exception(f"车站数据文件创建失败: {LOCAL_FILE_PATH}")
+      
+      #   #更新线路间隔数据
+      gen_route_interval(LOCAL_FILE_PATH, INTERVAL_PATH, LINK, MTR_VER)   #生成路线间隔数据
+      
+      #   #验证间隔数据文件已创建
+      if not os.path.exists(INTERVAL_PATH):
+         raise Exception(f"路线间隔数据文件创建失败: {INTERVAL_PATH}")
+      
+      return True   #更新成功
+   except Exception as e:
+      print(f"数据更新错误: {e}")   #打印错误信息
+      return False   #更新失败
 
-# ==================== 数据更新函数结束 ====================
+#=================== 数据更新函数结束 ====================
 
-SERVER_TICK: int = 20
+SERVER_TICK: int = 20   #服务器游戏刻速率（每秒20刻）
 
-DEFAULT_AVERAGE_SPEED: dict = {
-    'train_normal': 14,
-    'train_light_rail': 11,
-    'train_high_speed': 40,
-    'boat_normal': 10,
-    'boat_light_rail': 10,
-    'boat_high_speed': 13,
-    'cable_car_normal': 8,
-    'airplane_normal': 70
+DEFAULT_AVERAGE_SPEED: dict = {   #默认平均速度配置
+   'train_normal': 14,   #普通列车平均速度
+   'train_light_rail': 11,   #轻轨列车平均速度
+   'train_high_speed': 40,   #高速列车平均速度
+   'boat_normal': 10,   #普通船只平均速度
+   'boat_light_rail': 10,   #轻轨船只平均速度
+   'boat_high_speed': 13,   #高速船只平均速度
+   'cable_car_normal': 8,   #缆车平均速度
+   'airplane_normal': 70   #飞机平均速度
 }
-RUNNING_SPEED: int = 5.612
-TRANSFER_SPEED: int = 4.317
-WILD_WALKING_SPEED: int = 2.25
+RUNNING_SPEED: int = 5.612   #列车运行速度（格/刻）
+TRANSFER_SPEED: int = 4.317   #换乘步行速度（格/刻）
+WILD_WALKING_SPEED: int = 2.25   #野外步行速度（格/刻）
 
 ROUTE_INTERVAL_DATA = Queue()   #路线间隔数据队列
 semaphore = BoundedSemaphore(25)   #限制并发数的信号量
@@ -318,7 +146,6 @@ HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <script defer src="https://umamitonyv2.zeabur.app/script.js" data-website-id="7d1df907-e307-4908-a6c4-7ab5a724a404"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MTR路径查找器</title>
@@ -459,6 +286,81 @@ HTML_TEMPLATE = '''
             border-color: var(--primary-color);
             background: white;
             box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+        
+        .shortcode-hint {
+            font-size: 0.75rem;
+            color: rgba(0, 0, 0, 0.6);
+            margin-top: 4px;
+        }
+        
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .route-type-toggle {
+            display: flex;
+            position: relative;
+            width: 100%;
+            max-width: 360px;
+            margin: 12px 0;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 4px;
+        }
+        
+        .route-type-toggle input[type="radio"] {
+            display: none;
+        }
+        
+        .route-type-toggle label {
+            flex: 1;
+            text-align: center;
+            padding: 8px 12px;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1;
+            font-weight: 500;
+            font-size: 0.9rem;
+            border-radius: 6px;
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: calc(50% - 4px);
+            height: calc(100% - 8px);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 6px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 0;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+        }
+        
+        .route-type-toggle input[type="radio"]:checked + label {
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+        
+        .route-type-labels {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            max-width: 360px;
+            margin-top: 8px;
+            font-size: 0.75rem;
+            color: rgba(0, 0, 0, 0.5);
+        }
+        
+        .route-type-labels span {
+            min-width: 120px;
+            text-align: center;
         }
         
         /* 复选框组 */
@@ -919,25 +821,44 @@ HTML_TEMPLATE = '''
                     </div>
                     
                     <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="shortCode">简码</label>
+                            <input type="text" id="shortCode" name="shortCode" placeholder="/路线 出发站;到达站;详细;理论;越野;禁高铁;禁船;仅轻铁">
+                            <div class="shortcode-hint">格式: /路线 出发站;到达站;[详细];[理论];[越野];[禁高铁];[禁船];[仅轻铁];[禁路线;路线;...];[禁车站;车站;...]</div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
                         <div class="form-group">
-                            <label for="avoidStations">禁车站 (用逗号分隔)</label>
-                            <input type="text" id="avoidStations" name="avoidStations" placeholder="例：尖沙咀,中环">
+                            <label for="avoidStations">禁车站 (用逗号或顿号分隔)</label>
+                            <input type="text" id="avoidStations" name="avoidStations" placeholder="例：尖沙咀,中环,旺角">
                         </div>
                         <div class="form-group">
-                            <label for="avoidRoutes">禁路线 (用逗号分隔)</label>
+                            <label for="avoidRoutes">禁路线 (用逗号或顿号分隔)</label>
                             <input type="text" id="avoidRoutes" name="avoidRoutes" placeholder="例：荃湾线,观塘线">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="onlyRoutes">仅路线 (用逗号或顿号分隔，留空则不限制)</label>
+                            <input type="text" id="onlyRoutes" name="onlyRoutes" placeholder="例：荃湾线,观塘线">
                         </div>
                     </div>
                 </div>
                 
                 <div class="form-section">
                     <h3>路线设置</h3>
-                    <div class="form-group">
-                        <label for="routeType">路线类型</label>
-                        <select id="routeType" name="routeType">
-                            <option value="WAITING">实际路线（考虑等车时间）</option>
-                            <option value="IN_THEORY">理论路线（不考虑等车时间）</option>
-                        </select>
+                    <div class="route-type-toggle">
+                        <input type="radio" id="routeTypeWaiting" name="routeType" value="WAITING">
+                        <label for="routeTypeWaiting">实际路线</label>
+                        <input type="radio" id="routeTypeTheory" name="routeType" value="IN_THEORY">
+                        <label for="routeTypeTheory">理论路线</label>
+                        <div class="toggle-slider"></div>
+                    </div>
+                    <div class="route-type-labels">
+                        <span>考虑等车时间</span>
+                        <span>不考虑等车时间</span>
                     </div>
                 </div>
                 
@@ -945,20 +866,20 @@ HTML_TEMPLATE = '''
                     <h3>交通方式</h3>
                     <div class="checkbox-group">
                         <div class="checkbox-item">
-                            <input type="checkbox" id="calculateHighSpeed" name="calculateHighSpeed" checked>
-                            <span>允许高铁</span>
+                            <input type="checkbox" id="banHighSpeed" name="banHighSpeed">
+                            <span>禁高铁</span>
                         </div>
                         <div class="checkbox-item">
-                            <input type="checkbox" id="calculateBoat" name="calculateBoat" checked>
-                            <span>允许船只</span>
+                            <input type="checkbox" id="banBoat" name="banBoat">
+                            <span>禁船</span>
                         </div>
                         <div class="checkbox-item">
                             <input type="checkbox" id="calculateWalkingWild" name="calculateWalkingWild">
-                            <span>允许野外步行</span>
+                            <span>越野</span>
                         </div>
                         <div class="checkbox-item">
                             <input type="checkbox" id="onlyLRT" name="onlyLRT">
-                            <span>仅轻轨</span>
+                            <span>仅轻铁</span>
                         </div>
                         <div class="checkbox-item">
                             <input type="checkbox" id="detail" name="detail">
@@ -981,6 +902,259 @@ HTML_TEMPLATE = '''
     </div>
 
     <script>
+        // 简码解析函数
+        function parseShortCode(code) {
+            if (!code || !code.startsWith('/路线') && !code.startsWith('/路线 ')) {
+                return null;
+            }
+            
+            // 移除开头的/路线
+            let rest = code.replace(/^\/路线\s*/, '');
+            
+            // 用分号分割（支持中英文分号）
+            let parts = rest.split(/[;；]/).map(p => p.trim()).filter(p => p);
+            
+            if (parts.length < 2) {
+                return null;
+            }
+            
+            let result = {
+                startStation: parts[0],
+                endStation: parts[1],
+                routeType: 'WAITING',
+                banHighSpeed: false,
+                banBoat: false,
+                calculateWalkingWild: false,
+                onlyLRT: false,
+                detail: false,
+                avoidRoutes: '',
+                avoidStations: ''
+            };
+            
+            // 解析后续参数
+            for (let i = 2; i < parts.length; i++) {
+                let param = parts[i].toLowerCase();
+                
+                if (param === '详细' || param === 'detail') {
+                    result.detail = true;
+                } else if (param === '理论' || param === 'theory' || param === '实时') {
+                    result.routeType = 'IN_THEORY';
+                } else if (param === '越野' || param === 'wild') {
+                    result.calculateWalkingWild = true;
+                } else if (param === '禁高铁' || param === 'nohsr' || param === 'banhsr') {
+                    result.banHighSpeed = true;
+                } else if (param === '禁船' || param === 'noboat' || param === 'banboat') {
+                    result.banBoat = true;
+                } else if (param === '仅轻铁' || param === 'onlylrt' || param === 'lrt') {
+                    result.onlyLRT = true;
+                } else if (param.startsWith('禁路线') || param.startsWith('banroute') || param.startsWith('noroute') || param.startsWith('ban-route')) {
+                    // 格式: 禁路线;路线1;路线2;... 或 禁路线:路线1;路线2;...
+                    let routePart = parts[i];
+                    // 移除前缀
+                    let cleanPart = routePart.replace(/^(禁路线|banroute|noroute|ban-route)[:;；]*/i, '').trim();
+                    if (cleanPart) {
+                        // 如果当前部分就是路线名，直接使用
+                        result.avoidRoutes = cleanPart;
+                    } else {
+                        // 否则从后续部分收集路线名
+                        let routes = [];
+                        for (let j = i + 1; j < parts.length; j++) {
+                            let nextParam = parts[j].toLowerCase();
+                            // 遇到下一个参数名就停止
+                            if (nextParam === '详细' || nextParam === 'detail' || nextParam === '理论' || nextParam === 'theory' || 
+                                nextParam === '实时' || nextParam === '越野' || nextParam === 'wild' || nextParam === '禁高铁' || 
+                                nextParam === 'nohsr' || nextParam === 'banhsr' || nextParam === '禁船' || nextParam === 'noboat' || 
+                                nextParam === 'banboat' || nextParam === '仅轻铁' || nextParam === 'onlylrt' || nextParam === 'lrt' ||
+                                nextParam.startsWith('禁路线') || nextParam.startsWith('banroute') || nextParam.startsWith('noroute') ||
+                                nextParam.startsWith('禁车站') || nextParam.startsWith('banstation') || nextParam.startsWith('nostation')) {
+                                break;
+                            }
+                            routes.push(parts[j].trim());
+                        }
+                        if (routes.length > 0) {
+                            result.avoidRoutes = routes.join(',');
+                        }
+                    }
+                } else if (param.startsWith('禁车站') || param.startsWith('banstation') || param.startsWith('nostation') || param.startsWith('ban-station')) {
+                    // 格式: 禁车站;车站1;车站2;... 或 禁车站:车站1;车站2;...
+                    let stationPart = parts[i];
+                    // 移除前缀
+                    let cleanPart = stationPart.replace(/^(禁车站|banstation|nostation|ban-station)[:;；]*/i, '').trim();
+                    if (cleanPart) {
+                        // 如果当前部分就是车站名，直接使用
+                        result.avoidStations = cleanPart;
+                    } else {
+                        // 否则从后续部分收集车站名
+                        let stations = [];
+                        for (let j = i + 1; j < parts.length; j++) {
+                            let nextParam = parts[j].toLowerCase();
+                            // 遇到下一个参数名就停止
+                            if (nextParam === '详细' || nextParam === 'detail' || nextParam === '理论' || nextParam === 'theory' || 
+                                nextParam === '实时' || nextParam === '越野' || nextParam === 'wild' || nextParam === '禁高铁' || 
+                                nextParam === 'nohsr' || nextParam === 'banhsr' || nextParam === '禁船' || nextParam === 'noboat' || 
+                                nextParam === 'banboat' || nextParam === '仅轻铁' || nextParam === 'onlylrt' || nextParam === 'lrt' ||
+                                nextParam.startsWith('禁路线') || nextParam.startsWith('banroute') || nextParam.startsWith('noroute') ||
+                                nextParam.startsWith('禁车站') || nextParam.startsWith('banstation') || nextParam.startsWith('nostation')) {
+                                break;
+                            }
+                            stations.push(parts[j].trim());
+                        }
+                        if (stations.length > 0) {
+                            result.avoidStations = stations.join(',');
+                        }
+                    }
+                }
+            }
+            
+            return result;
+        }
+        
+        // 简码生成函数
+        function generateShortCode(data) {
+            let code = '/路线 ' + data.startStation + ';' + data.endStation;
+            
+            if (data.detail) {
+                code += ';详细';
+            }
+            
+            if (data.routeType === 'IN_THEORY') {
+                code += ';理论';
+            }
+            
+            if (data.calculateWalkingWild) {
+                code += ';越野';
+            }
+            
+            if (data.banHighSpeed) {
+                code += ';禁高铁';
+            }
+            
+            if (data.banBoat) {
+                code += ';禁船';
+            }
+            
+            if (data.onlyLRT) {
+                code += ';仅轻铁';
+            }
+            
+            if (data.avoidRoutes) {
+                code += ';禁路线;' + data.avoidRoutes.replace(/,/g, ';');
+            }
+            
+            if (data.avoidStations) {
+                code += ';禁车站;' + data.avoidStations.replace(/,/g, ';');
+            }
+            
+            return code;
+        }
+        
+        // 滑动开关逻辑
+        function setupRouteTypeToggle() {
+            const toggle = document.querySelector('.route-type-toggle');
+            if (!toggle) return;
+            
+            const slider = toggle.querySelector('.toggle-slider');
+            const waitingRadio = document.getElementById('routeTypeWaiting');
+            const theoryRadio = document.getElementById('routeTypeTheory');
+            
+            function updateSlider() {
+                if (theoryRadio.checked) {
+                    slider.style.left = '50%';
+                } else {
+                    slider.style.left = '0';
+                }
+            }
+            
+            waitingRadio.addEventListener('change', updateSlider);
+            theoryRadio.addEventListener('change', updateSlider);
+            
+            // 初始化滑块位置
+            updateSlider();
+        }
+        
+        // 双向同步
+        function setupShortCodeSync() {
+            const shortCodeInput = document.getElementById('shortCode');
+            const startInput = document.getElementById('startStation');
+            const endInput = document.getElementById('endStation');
+            const routeTypeWaiting = document.getElementById('routeTypeWaiting');
+            const routeTypeTheory = document.getElementById('routeTypeTheory');
+            const banHighSpeedInput = document.getElementById('banHighSpeed');
+            const banBoatInput = document.getElementById('banBoat');
+            const calculateWalkingWildInput = document.getElementById('calculateWalkingWild');
+            const onlyLRTInput = document.getElementById('onlyLRT');
+            const detailInput = document.getElementById('detail');
+            const avoidRoutesInput = document.getElementById('avoidRoutes');
+            const avoidStationsInput = document.getElementById('avoidStations');
+            
+            // 简码输入框变化时更新其他字段
+            shortCodeInput.addEventListener('input', function() {
+                const parsed = parseShortCode(this.value);
+                if (parsed) {
+                    // 总是更新起点和终点
+                    if (parsed.startStation) {
+                        startInput.value = parsed.startStation;
+                    }
+                    if (parsed.endStation) {
+                        endInput.value = parsed.endStation;
+                    }
+                    if (parsed.routeType === 'IN_THEORY') {
+                        routeTypeTheory.checked = true;
+                    } else {
+                        routeTypeWaiting.checked = true;
+                    }
+                    banHighSpeedInput.checked = parsed.banHighSpeed;
+                    banBoatInput.checked = parsed.banBoat;
+                    calculateWalkingWildInput.checked = parsed.calculateWalkingWild;
+                    onlyLRTInput.checked = parsed.onlyLRT;
+                    detailInput.checked = parsed.detail;
+                    if (parsed.avoidRoutes !== undefined) {
+                        avoidRoutesInput.value = parsed.avoidRoutes;
+                    }
+                    if (parsed.avoidStations !== undefined) {
+                        avoidStationsInput.value = parsed.avoidStations;
+                    }
+                }
+            });
+            
+            // 其他输入框变化时更新简码
+            function updateShortCode() {
+                const data = {
+                    startStation: startInput.value,
+                    endStation: endInput.value,
+                    routeType: routeTypeTheory.checked ? 'IN_THEORY' : 'WAITING',
+                    banHighSpeed: banHighSpeedInput.checked,
+                    banBoat: banBoatInput.checked,
+                    calculateWalkingWild: calculateWalkingWildInput.checked,
+                    onlyLRT: onlyLRTInput.checked,
+                    detail: detailInput.checked,
+                    avoidRoutes: avoidRoutesInput.value,
+                    avoidStations: avoidStationsInput.value
+                };
+                shortCodeInput.value = generateShortCode(data);
+            }
+            
+            // 为所有相关输入框添加事件监听
+            [startInput, endInput, banHighSpeedInput, banBoatInput, 
+             calculateWalkingWildInput, onlyLRTInput, detailInput, avoidRoutesInput, avoidStationsInput].forEach(input => {
+                input.addEventListener('input', updateShortCode);
+                input.addEventListener('change', updateShortCode);
+            });
+            
+            // 为单选按钮添加事件监听
+            routeTypeWaiting.addEventListener('change', updateShortCode);
+            routeTypeTheory.addEventListener('change', updateShortCode);
+            
+            // 初始化简码
+            updateShortCode();
+        }
+        
+        // 页面加载时设置双向同步和滑动开关
+        document.addEventListener('DOMContentLoaded', function() {
+            setupRouteTypeToggle();
+            setupShortCodeSync();
+        });
+        
         document.getElementById('routeForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -989,13 +1163,14 @@ HTML_TEMPLATE = '''
                 startStation: formData.get('startStation'),
                 endStation: formData.get('endStation'),
                 routeType: formData.get('routeType'),
-                calculateHighSpeed: formData.get('calculateHighSpeed') === 'on',
-                calculateBoat: formData.get('calculateBoat') === 'on',
+                banHighSpeed: formData.get('banHighSpeed') === 'on',
+                banBoat: formData.get('banBoat') === 'on',
                 calculateWalkingWild: formData.get('calculateWalkingWild') === 'on',
                 onlyLRT: formData.get('onlyLRT') === 'on',
                 detail: formData.get('detail') === 'on',
                 avoidStations: formData.get('avoidStations'),
-                avoidRoutes: formData.get('avoidRoutes')
+                avoidRoutes: formData.get('avoidRoutes'),
+                onlyRoutes: formData.get('onlyRoutes')
             };
             
             // 显示加载中
@@ -1062,11 +1237,6 @@ semaphore = BoundedSemaphore(25)  # 限制并发数的信号量
 original = {}  # 存储原始数据
 tmp_names = {}  # 临时名称存储
 
-# 中文简繁转换器初始化
-# 注意：opencc-python-reimplemented不支持t2jp和jp2t转换
-opencc1 = OpenCC('s2t')  # 简体转繁体
-opencc3 = OpenCC('t2s')  # 繁体转简体
-
 
 def get_close_matches(words, possibilities, cutoff=0.2):
     '''
@@ -1104,6 +1274,21 @@ def round_ten(n: float) -> int:
     return ans if ans > 0 else 10  # 确保结果为正
 
 
+def fetch_interval_data(station_id: str, LINK) -> None:
+    '''
+    获取车站的间隔数据
+    '''
+    global ROUTE_INTERVAL_DATA
+    with semaphore:  # 使用信号量限制并发
+        link = LINK + f'/arrivals?worldIndex=0&stationId={station_id}'  # 构建API链接
+        try:
+            data = requests.get(link).json()  # 发送请求获取数据
+        except Exception:
+            pass  # 忽略异常
+        else:
+            ROUTE_INTERVAL_DATA.put([station_id, [time(), data]])  # 将数据放入队列
+
+
 def atoi(text: str) -> Union[str, int]:
     '''
     将字符串转换为数字（如果可以）
@@ -1125,25 +1310,22 @@ def lcm(a: int, b: int) -> int:
     return a * b // gcd(a, b)  # 使用公式 LCM = (a*b)/GCD
 
 
-def fetch_interval_data(station_id: str, LINK) -> None:
+def get_distance(a_dict: dict, b_dict: dict, square: bool = False) -> float:
     '''
-    获取车站的间隔数据
+    获取两个车站之间的距离
     '''
-    global ROUTE_INTERVAL_DATA
-    with semaphore:  # 使用信号量限制并发
-        link = LINK + f'/arrivals? worldIndex=0&stationId={station_id}'  # 构建API链接
-        try:
-            data = requests.get(link).json()  # 发送请求获取数据
-        except Exception:
-            pass  # 忽略异常
-        else:
-            ROUTE_INTERVAL_DATA.put([station_id, [time(), data]])  # 将数据放入队列
+    dist_square = (a_dict['x'] - b_dict['x']) ** 2 + \
+        (a_dict['z'] - b_dict['z']) ** 2  # 计算平方距离
+    if square is True:
+        return dist_square
+    return sqrt(dist_square)  # 返回实际距离
 
 
 def gen_route_interval(LOCAL_FILE_PATH, INTERVAL_PATH, LINK, MTR_VER) -> None:
     '''
     生成所有路线间隔数据
     '''
+    import requests
     with open(LOCAL_FILE_PATH, encoding='utf-8') as f:
         data = json.load(f)  # 加载本地数据
 
@@ -1170,7 +1352,7 @@ def gen_route_interval(LOCAL_FILE_PATH, INTERVAL_PATH, LINK, MTR_VER) -> None:
     if MTR_VER == 3:  # MTR版本3的处理
         threads: list[Thread] = []
         stations = data[0].get('stations', {})
-        station_ids = list(stations.keys()) if isinstance(stations, dict) else []
+        station_ids = list(stations.keys()) if isinstance(stations, dict) else stations
         for station_id in station_ids:  # 为每个车站创建线程
             t = Thread(target=fetch_interval_data, args=(station_id, LINK))
             t.start()
@@ -1300,73 +1482,6 @@ def gen_route_interval(LOCAL_FILE_PATH, INTERVAL_PATH, LINK, MTR_VER) -> None:
 
     with open(INTERVAL_PATH, 'w', encoding='utf-8') as f:
         json.dump(freq_dict, f)  # 直接保存间隔数据
-
-
-def fetch_data(link: str, LOCAL_FILE_PATH, MTR_VER) -> str:
-    '''
-    获取所有路线数据和车站数据
-    '''
-    if MTR_VER == 3:  # MTR版本3
-        link = link. rstrip('/') + '/data'
-        data = requests.get(link).json()  # 获取数据
-    else:  # MTR版本4
-        link = link.rstrip('/') + '/mtr/api/map/stations-and-routes? dimension=0'
-        data = requests.get(link).json()['data']  # 获取数据
-
-        data_new = {'routes': [], 'stations': {}}
-        i = 0
-        for d in data['stations']:  # 处理车站数据
-            d['station'] = hex(i)[2:]  # 生成十六进制ID
-            data_new['stations'][d['id']] = d
-            i += 1
-
-        x_dict = {x['id']: [] for x in data['stations']}
-        z_dict = {x['id']: [] for x in data['stations']}
-        for route in data['routes']:  # 处理路线数据
-            # if route['hidden'] is True:
-            #     continue
-
-            # 处理环形路线状态
-            if route['circularState'] == 'CLOCKWISE':
-                route['circular'] = 'cw'  # 顺时针
-            elif route['circularState'] == 'ANTICLOCKWISE':
-                route['circular'] = 'ccw'  # 逆时针
-            else:
-                route['circular'] = ''
-
-            route['durations'] = [round(x / 1000) for x in route['durations']]  # 转换为秒
-            for station in route['stations']:  # 收集坐标数据
-                x_dict[station['id']] += [station['x']]
-                z_dict[station['id']] += [station['z']]
-
-            data_new['routes'].append(route)
-
-        for station in data['stations']:  # 计算平均坐标
-            x_list = x_dict[station['id']]
-            z_list = z_dict[station['id']]
-            if len(x_list) == 0:
-                continue
-
-            data_new['stations'][station['id']]['x'] = sum(x_list) / len(x_list)
-            data_new['stations'][station['id']]['z'] = sum(z_list) / len(z_list)
-
-        data = [data_new]  # 包装数据
-
-    with open(LOCAL_FILE_PATH, 'w', encoding='utf-8') as f:
-        json.dump(data, f)  # 直接保存数据
-
-    return data
-
-
-def get_distance(a_dict: dict, b_dict: dict, square: bool = False) -> float:
-    '''
-    获取两个车站之间的距离
-    '''
-    dist_square = (a_dict['x'] - b_dict['x']) ** 2 + \
-        (a_dict['z'] - b_dict['z']) ** 2  # 计算平方距离
-    if square is True:
-        return dist_square
-    return sqrt(dist_square)  # 返回实际距离
 
 
 def station_name_to_id(data: list, sta: str, STATION_TABLE,
@@ -1515,7 +1630,8 @@ def create_graph(data: list, IGNORED_LINES: bool,
                  version1: str, version2: str,
                  LOCAL_FILE_PATH, STATION_TABLE,
                  WILD_ADDITION, TRANSFER_ADDITION,
-                 MAX_WILD_BLOCKS, MTR_VER, cache) -> nx.MultiDiGraph:
+                 MAX_WILD_BLOCKS, MTR_VER, cache,
+                 ONLY_ROUTES: list = []) -> nx.MultiDiGraph:
     '''
     创建所有路线的图
     '''
@@ -1532,7 +1648,7 @@ def create_graph(data: list, IGNORED_LINES: bool,
             CALCULATE_BOAT is True and ONLY_LRT is False and \
             AVOID_STATIONS == [] and route_type == RouteType.WAITING:
         filename = f'mtr_pathfinder_temp{os.sep}' + \
-            f'{int(CALCULATE_HIGH_SPEED)}{int(CALCULATE_WALKING_WILD)}' + \
+            f'{int(CALCULATE_HIGH_SPEED)}{int(CALCULATE_BOAT)}{int(CALCULATE_WALKING_WILD)}' + \
             f'-{version1}-{version2}.dat'
         if os.path.exists(filename):  # 缓存文件存在
             with open(filename, 'rb') as f:
@@ -1729,6 +1845,24 @@ def create_graph(data: list, IGNORED_LINES: bool,
 
         if cont is True:  # 跳过忽略的路线
             continue
+
+        # 检查是否在仅路线列表中（如果设置了ONLY_ROUTES）
+        if ONLY_ROUTES:
+            TEMP_ONLY_ROUTES = [x.lower().strip() for x in ONLY_ROUTES if x != '']
+            route_in_only = False
+            for x in route_names:
+                x = x.lower().strip()
+                if x in TEMP_ONLY_ROUTES:
+                    route_in_only = True
+                    break
+                if x.isascii():
+                    continue
+                simp1 = opencc3.convert(x)  # 简体中文
+                if simp1 in TEMP_ONLY_ROUTES:
+                    route_in_only = True
+                    break
+            if not route_in_only:
+                continue
 
         # 根据设置过滤路线类型
         if (not CALCULATE_HIGH_SPEED) and route['type'] == 'train_high_speed':
@@ -2353,7 +2487,8 @@ def main(station1: str, station2: str, LINK: str,
          STATION_TABLE: dict[str, str] = {},
          ORIGINAL_IGNORED_LINES: list = [], UPDATE_DATA: bool = False,
          GEN_ROUTE_INTERVAL: bool = False, IGNORED_LINES: list = [],
-         AVOID_STATIONS: list = [], CALCULATE_HIGH_SPEED: bool = True,
+         AVOID_STATIONS: list = [], ONLY_ROUTES: list = [],
+         CALCULATE_HIGH_SPEED: bool = True,
          CALCULATE_BOAT: bool = True, CALCULATE_WALKING_WILD: bool = False,
          ONLY_LRT: bool = False, IN_THEORY: bool = False, DETAIL: bool = False,
          MTR_VER: int = 3, G=None, gen_image=True, show=False,
@@ -2444,7 +2579,7 @@ def main(station1: str, station2: str, LINK: str,
                          AVOID_STATIONS, route_type, ORIGINAL_IGNORED_LINES,
                          INTERVAL_PATH, version1, version2, LOCAL_FILE_PATH,
                          STATION_TABLE, WILD_ADDITION, TRANSFER_ADDITION,
-                         MAX_WILD_BLOCKS, MTR_VER, cache)  # 创建图
+                         MAX_WILD_BLOCKS, MTR_VER, cache, ONLY_ROUTES)  # 创建图
 
     # 查找最短路线
     shortest_path, shortest_distance, waiting_time, riding_time, ert = \
@@ -2637,6 +2772,15 @@ def get_route_direction(stations, circular):
     return f"{len(stations)}站"
 
 
+def split_by_comma(text: str) -> list:
+    '''支持中英文逗号分隔'''
+    if not text:
+        return []
+    # 先替换中文逗号为英文逗号，再分割
+    text = text.replace('，', ',').replace('、', ',')
+    return [item.strip() for item in text.split(',') if item.strip()]
+
+
 @app.route('/find-route', methods=['POST'])
 def find_route():
     '''处理路径查找请求'''
@@ -2645,19 +2789,23 @@ def find_route():
         station1 = data.get('startStation')
         station2 = data.get('endStation')
         route_type_str = data.get('routeType', 'WAITING')
-        CALCULATE_HIGH_SPEED = data.get('calculateHighSpeed', True)
-        CALCULATE_BOAT = data.get('calculateBoat', True)
+        CALCULATE_HIGH_SPEED = not data.get('banHighSpeed', False)
+        CALCULATE_BOAT = not data.get('banBoat', False)
         CALCULATE_WALKING_WILD = data.get('calculateWalkingWild', False)
         ONLY_LRT = data.get('onlyLRT', False)
         DETAIL = data.get('detail', False)
         
         # 处理禁车站参数
         avoidStations = data.get('avoidStations', '')
-        AVOID_STATIONS = [station.strip() for station in avoidStations.split(',') if station.strip()]
+        AVOID_STATIONS = split_by_comma(avoidStations)
         
         # 处理禁路线参数
         avoidRoutes = data.get('avoidRoutes', '')
-        IGNORED_LINES = [route.strip() for route in avoidRoutes.split(',') if route.strip()]
+        IGNORED_LINES = split_by_comma(avoidRoutes)
+        
+        # 处理仅路线参数
+        onlyRoutes = data.get('onlyRoutes', '')
+        ONLY_ROUTES = split_by_comma(onlyRoutes)
         
         # 转换路线类型
         IN_THEORY = (route_type_str == 'IN_THEORY')
@@ -2696,6 +2844,7 @@ def find_route():
             GEN_ROUTE_INTERVAL=False,
             IGNORED_LINES=IGNORED_LINES,
             AVOID_STATIONS=AVOID_STATIONS,
+            ONLY_ROUTES=ONLY_ROUTES,
             CALCULATE_HIGH_SPEED=CALCULATE_HIGH_SPEED,
             CALCULATE_BOAT=CALCULATE_BOAT,
             CALCULATE_WALKING_WILD=CALCULATE_WALKING_WILD,
