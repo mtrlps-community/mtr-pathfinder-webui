@@ -27,6 +27,10 @@ import json   #JSON数据处理
 import pickle   #Python对象序列化
 import re   #正则表达式处理
 
+from datetime import datetime, timedelta, timezone   #用于处理日期和时间
+from statistics import mode   #用于计算众数
+import random   #用于生成随机数
+
 #第三方库导入
 from opencc import OpenCC   #简繁中文转换工具
 import networkx as nx   #图论和网络分析库
@@ -219,6 +223,181 @@ def fetch_data(LINK: str, LOCAL_FILE_PATH: str, MTR_VER: int) -> str:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
     return LOCAL_FILE_PATH
+
+
+#=================== 时刻表相关函数 ====================
+def tt_convert_time(t, use_second=False):
+    '''
+    将秒数转换为时间字符串
+    
+    Args:
+        t: 时间（秒）
+        use_second: 是否包含秒，默认为False
+        
+    Returns:
+        格式化的时间字符串
+    '''
+    if use_second:
+        hour = str(t // (60 * 60)).rjust(2, '0')
+        minute = str((t % 3600) // 60).rjust(2, '0')
+        second = str(t % 60).rjust(2, '0')
+        return ':'.join([hour, minute, second])
+    else:
+        hour = t // (60 * 60)
+        minute = (t % 3600) // 60
+        second = t % 60
+        
+        if second >= 60:
+            minute += 1
+        if minute >= 60:
+            minute -= 60
+            hour += 1
+        if hour == 24:
+            hour = 0
+        
+        hour = str(hour).rjust(2, '0')
+        minute = str(minute).rjust(2, '0')
+        return ':'.join([hour, minute])
+
+
+def tt_get_close_matches(words, possibilities, cutoff=0.2):
+    '''
+    查找与给定单词最相似的匹配项
+    '''
+    result = [(-1, None)]
+    s = SequenceMatcher()
+    
+    for word in words:
+        s.set_seq2(word)
+        for x, y in possibilities:
+            s.set_seq1(x)
+            if s.real_quick_ratio() >= cutoff and s.quick_ratio() >= cutoff:
+                ratio = s.ratio()
+                if ratio >= cutoff:
+                    result.append((ratio, y))
+
+    return max(result)[1]
+
+
+def tt_station_name_to_id(data, sta, fuzzy_compare=True):
+    '''
+    将车站名称转换为车站ID
+    
+    Args:
+        data: 包含车站信息的数据字典
+        sta: 车站名称
+        
+    Returns:
+        车站ID，如果未找到则返回None
+    '''
+    sta = sta.lower()
+    tra1 = tt_opencc1.convert(sta)
+    sta_try = [sta, tra1, tt_opencc2.convert(tra1)]
+
+    all_names = []
+    stations = data[0]['stations']
+    output = None
+    has_station = False
+    
+    for station_id, station_dict in stations.items():
+        s_1 = station_dict['name']
+        if 'x' in station_dict and 'z' in station_dict:
+            all_names.append((s_1, station_id))
+
+        s_split = station_dict['name'].split('|')
+        s_2_2 = s_split[-1]
+        s_2 = s_2_2.split('/')[-1]
+        s_3 = s_split[0]
+        
+        for st in sta_try:
+            if st in (s_1.lower(), s_2.lower(), s_2_2.lower(), s_3.lower()):
+                has_station = True
+                output = station_id
+                break
+
+    if has_station is False and fuzzy_compare:
+        output = tt_get_close_matches(sta_try, all_names)
+
+    return output
+
+
+def tt_route_name_to_id(data, route_name):
+    '''
+    将线路名称转换为线路ID
+    
+    Args:
+        data: 包含线路信息的数据字典
+        route_name: 线路名称
+        
+    Returns:
+        包含线路ID的列表
+    '''
+    for route in data[0]['routes']:
+        if route_name == route['id']:
+            return [route_name]
+
+    route_name = route_name.lower()
+    result = []
+    
+    for route in data[0]['routes']:
+        output = route['id']
+        n = route['name']
+        number = route.get('number', '')
+        
+        route_names = [n, n.split('|')[0]]
+        
+        if ('||' in n and n.count('|') > 2) or ('||' not in n and n.count('|') > 0):
+            eng_name = n.split('|')[1].split('|')[0]
+            if eng_name != '':
+                route_names.append(eng_name)
+
+        if number not in ['', ' ']:
+            for tmp_name in route_names[1:]:
+                route_names.append(tmp_name + ' ' + number)
+
+        for x in route_names:
+            x = x.lower().strip()
+            if x == route_name:
+                result.append(output)
+                continue
+
+            if x.isascii():
+                continue
+
+            simp1 = tt_opencc3.convert(x)
+            if simp1 == route_name:
+                result.append(output)
+                continue
+
+            simp2 = tt_opencc3.convert(tt_opencc4.convert(x))
+            if simp2 == route_name:
+                result.append(output)
+                continue
+
+    return result
+
+
+def tt_station_short_id_to_id(data, short_id):
+    '''
+    将车站短ID转换为车站ID
+    
+    Args:
+        data: 包含车站信息的数据字典
+        short_id: 车站短ID（整数形式）
+        
+    Returns:
+        车站ID，如果未找到则返回None
+    '''
+    short_id = hex(short_id)[2:]
+    stations = data[0]['stations']
+    output = None
+    
+    for station_id, station_dict in stations.items():
+        if short_id == station_dict.get('station', ''):
+            output = station_id
+            break
+
+    return output
 
 
 #   #HTML模板定义
@@ -2876,6 +3055,25 @@ config = {
     'UMAMI_WEBSITE_ID': os.environ.get('MTR_UMAMI_WEBSITE_ID', '')    #Umami网站ID
 }
 
+#时刻表功能相关常量
+tt_opencc1 = OpenCC('s2t')  #简体转繁体
+tt_opencc2 = OpenCC('t2jp')  #繁体转日语汉字
+tt_opencc3 = OpenCC('t2s')  #繁体转简体
+tt_opencc4 = OpenCC('jp2t')  #日语汉字转繁体
+
+#列车类型颜色映射表：键为列车类型，值为颜色代码
+COLOR_TABLE = {
+    '区间快速': '#00CCFF',
+    '快速': '#0F4E8C',
+    '区间急行': '#D3C427',
+    '急行': '#05B08D',
+    '特急': '#CB3550',
+    '快速特急': '#FF8F0C',
+    '卧铺车': '#CB3550',
+    '普通': '#009E60',
+    '缆车': '#FF0000'
+}
+
 # 控制台页面HTML
 ADMIN_HTML = '''
 <!DOCTYPE html>
@@ -4218,6 +4416,585 @@ except Exception as e:
         return jsonify({'success': False, 'error': '超时（超过3分钟）'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+
+#=================== 时刻表API端点 ====================
+def get_timetable_data():
+    '''获取时刻表所需的数据'''
+    LINK = config.get('LINK', '')
+    MTR_VER = config.get('MTR_VER', 4)
+    
+    if not LINK:
+        return None, None, None
+    
+    link_hash = hashlib.md5(LINK.encode('utf-8')).hexdigest()
+    LOCAL_FILE_PATH = f'mtr-station-data-{link_hash}-{MTR_VER}.json'
+    
+    if not os.path.exists(LOCAL_FILE_PATH):
+        return None, None, None
+    
+    with open(LOCAL_FILE_PATH, encoding='utf-8') as f:
+        data = json.load(f)
+    
+    interval_path = f'mtr-route-data-{link_hash}-{MTR_VER}.json'
+    if os.path.exists(interval_path):
+        with open(interval_path, encoding='utf-8') as f:
+            interval_data = json.load(f)
+    else:
+        interval_data = {}
+    
+    return data, interval_data, LOCAL_FILE_PATH
+
+
+@app.route('/api/timetable/station')
+def api_station_timetable():
+    '''获取车站时刻表API'''
+    station_name = request.args.get('station', '')
+    route_name = request.args.get('route', '')
+    
+    if not station_name:
+        return jsonify({'success': False, 'error': '请提供车站名称'})
+    
+    data, interval_data, _ = get_timetable_data()
+    if data is None:
+        return jsonify({'success': False, 'error': '数据未加载'})
+    
+    station_id = tt_station_name_to_id(data, station_name)
+    if station_id is None:
+        return jsonify({'success': False, 'error': f'未找到车站: {station_name}'})
+    
+    stations = data[0]['stations']
+    station_info = stations.get(station_id, {})
+    station_full_name = station_info.get('name', station_name)
+    station_short_id = station_info.get('station', '')
+    
+    if station_short_id:
+        try:
+            station_short_id = int('0x' + str(station_short_id), 16)
+        except:
+            station_short_id = None
+    
+    routes = data[0]['routes']
+    route_ids = []
+    if route_name:
+        route_ids = tt_route_name_to_id(data, route_name)
+    
+    output = []
+    for route in routes:
+        if route_ids and route['id'] not in route_ids:
+            continue
+        
+        route_stations = route['stations']
+        station_ids = [s['id'] for s in route_stations]
+        
+        if station_id not in station_ids:
+            continue
+        
+        idx = station_ids.index(station_id)
+        if idx >= len(route_stations):
+            continue
+        
+        current_station = route_stations[idx]
+        durations = route.get('durations', [])
+        
+        next_station = None
+        prev_station = None
+        if idx < len(route_stations) - 1:
+            next_station = route_stations[idx + 1]
+        if idx > 0:
+            prev_station = route_stations[idx - 1]
+        
+        route_name_formatted = route['name'].replace('||', ' ').replace('|', ' ')
+        route_color = route.get('color', 0)
+        route_type = route.get('type', 'train_normal')
+        
+        travel_time = 0
+        if idx < len(durations):
+            travel_time = durations[idx]
+        
+        output.append({
+            'route_id': route['id'],
+            'route_name': route_name_formatted,
+            'route_color': route_color,
+            'route_type': route_type,
+            'circular': route.get('circular', ''),
+            'current_station': {
+                'id': station_id,
+                'name': station_full_name.split('|')[0],
+                'arrival_time': None,
+                'departure_time': None
+            },
+            'next_station': {
+                'id': next_station['id'] if next_station else None,
+                'name': stations.get(next_station['id'], {}).get('name', '').split('|')[0] if next_station else None,
+                'travel_time': travel_time
+            } if next_station else None,
+            'prev_station': {
+                'id': prev_station['id'] if prev_station else None,
+                'name': stations.get(prev_station['id'], {}).get('name', '').split('|')[0] if prev_station else None,
+                'travel_time': durations[idx - 1] if idx > 0 and idx - 1 < len(durations) else 0
+            } if prev_station else None,
+            'station_position': idx + 1,
+            'total_stations': len(route_stations)
+        })
+    
+    return jsonify({
+        'success': True,
+        'data': {
+            'station_id': station_id,
+            'station_name': station_full_name.split('|')[0],
+            'station_short_id': station_short_id,
+            'routes': output,
+            'total_routes': len(output)
+        }
+    })
+
+
+@app.route('/api/timetable/route')
+def api_route_timetable():
+    '''获取线路时刻表API'''
+    route_name = request.args.get('route', '')
+    
+    if not route_name:
+        return jsonify({'success': False, 'error': '请提供线路名称'})
+    
+    data, interval_data, _ = get_timetable_data()
+    if data is None:
+        return jsonify({'success': False, 'error': '数据未加载'})
+    
+    route_ids = tt_route_name_to_id(data, route_name)
+    if not route_ids:
+        return jsonify({'success': False, 'error': f'未找到线路: {route_name}'})
+    
+    routes = data[0]['routes']
+    stations = data[0]['stations']
+    
+    output = []
+    for route_id in route_ids:
+        for route in routes:
+            if route['id'] != route_id:
+                continue
+            
+            route_stations = route['stations']
+            route_name_formatted = route['name'].replace('||', ' ').replace('|', ' ')
+            
+            station_list = []
+            for s in route_stations:
+                station_info = stations.get(s['id'], {})
+                station_name = station_info.get('name', s['id']).split('|')[0]
+                station_list.append({
+                    'id': s['id'],
+                    'name': station_name,
+                    'x': s.get('x', 0),
+                    'z': s.get('z', 0)
+                })
+            
+            durations = route.get('durations', [])
+            
+            output.append({
+                'route_id': route['id'],
+                'route_name': route_name_formatted,
+                'route_color': route.get('color', 0),
+                'route_type': route.get('type', 'train_normal'),
+                'circular': route.get('circular', ''),
+                'stations': station_list,
+                'durations': durations,
+                'total_stations': len(station_list)
+            })
+            break
+    
+    return jsonify({
+        'success': True,
+        'data': output
+    })
+
+
+@app.route('/api/timetable/stations')
+def api_all_stations():
+    '''获取所有车站列表API'''
+    data, interval_data, _ = get_timetable_data()
+    if data is None:
+        return jsonify({'success': False, 'error': '数据未加载'})
+    
+    stations = data[0]['stations']
+    output = []
+    
+    for station_id, station_info in stations.items():
+        name = station_info.get('name', station_id).split('|')[0]
+        short_id = station_info.get('station', '')
+        if short_id:
+            try:
+                short_id = int('0x' + str(short_id), 16)
+            except:
+                short_id = None
+        
+        output.append({
+            'id': station_id,
+            'name': name,
+            'short_id': short_id,
+            'x': station_info.get('x', 0),
+            'z': station_info.get('z', 0),
+            'connections': station_info.get('connections', [])
+        })
+    
+    output.sort(key=lambda x: x['name'])
+    
+    return jsonify({
+        'success': True,
+        'data': output,
+        'total': len(output)
+    })
+
+
+@app.route('/api/timetable/routes')
+def api_all_routes():
+    '''获取所有线路列表API'''
+    data, interval_data, _ = get_timetable_data()
+    if data is None:
+        return jsonify({'success': False, 'error': '数据未加载'})
+    
+    routes = data[0]['routes']
+    output = []
+    
+    for route in routes:
+        route_name = route['name'].replace('||', ' ').replace('|', ' ')
+        station_count = len(route.get('stations', []))
+        
+        output.append({
+            'id': route['id'],
+            'name': route_name,
+            'color': route.get('color', 0),
+            'type': route.get('type', 'train_normal'),
+            'circular': route.get('circular', ''),
+            'station_count': station_count
+        })
+    
+    output.sort(key=lambda x: x['name'])
+    
+    return jsonify({
+        'success': True,
+        'data': output,
+        'total': len(output)
+    })
+
+
+@app.route('/timetable')
+def timetable_page():
+    '''时刻表页面'''
+    return render_template_string(TIMETABLE_HTML)
+
+
+#时刻表页面HTML
+TIMETABLE_HTML = '''
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时刻表 - MTR路径查找器</title>
+    {% if config['UMAMI_SCRIPT_URL'] and config['UMAMI_WEBSITE_ID'] %}
+    <script defer src="{{ config['UMAMI_SCRIPT_URL'] }}" data-website-id="{{ config['UMAMI_WEBSITE_ID'] }}"></script>
+    {% endif %}
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 20px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+        
+        header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .nav-links a {
+            color: #667eea;
+            text-decoration: none;
+            padding: 10px 20px;
+            background: #f0f4ff;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        .nav-links a:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .search-section {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+        
+        .search-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .search-box {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .search-box input {
+            flex: 1;
+            min-width: 200px;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1.1em;
+            transition: border-color 0.3s;
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .search-box button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        .search-box button:hover {
+            transform: scale(1.05);
+        }
+        
+        .results-section {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .results-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .timetable-item {
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        
+        .timetable-item:hover {
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .route-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .route-color {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .route-info h3 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .route-info p {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .station-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #e74c3c;
+            background: #fdeaea;
+            border-radius: 10px;
+        }
+        
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚇 时刻表查询</h1>
+            <p>Minecraft Transit Railway 时刻表查询系统</p>
+            <div class="nav-links">
+                <a href="/">🏠 首页</a>
+                <a href="/stations">🚉 车站列表</a>
+                <a href="/routes">🛤️ 线路列表</a>
+                <a href="/timetable">📅 时刻表</a>
+                <a href="/admin">⚙️ 控制台</a>
+            </div>
+        </header>
+        
+        <div class="search-section">
+            <h2>🔍 查询时刻表</h2>
+            <div class="search-box">
+                <input type="text" id="stationInput" placeholder="输入车站名称（如：香港 HK）">
+                <button onclick="searchStation()">查询车站时刻表</button>
+            </div>
+        </div>
+        
+        <div class="results-section" id="results">
+            <h2>📋 查询结果</h2>
+            <p style="color: #666;">请输入车站名称查询经过该车站的所有线路时刻表信息。</p>
+        </div>
+    </div>
+    
+    <script>
+        async function searchStation() {
+            const stationName = document.getElementById('stationInput').value.trim();
+            const resultsDiv = document.getElementById('results');
+            
+            if (!stationName) {
+                resultsDiv.innerHTML = '<h2>📋 查询结果</h2><div class="error">请输入车站名称</div>';
+                return;
+            }
+            
+            resultsDiv.innerHTML = '<h2>📋 查询结果</h2><div class="loading">正在查询...</div>';
+            
+            try {
+                const response = await fetch(`/api/timetable/station?station=${encodeURIComponent(stationName)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderTimetable(data.data, resultsDiv);
+                } else {
+                    resultsDiv.innerHTML = `<h2>📋 查询结果</h2><div class="error">${data.error}</div>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<h2>📋 查询结果</h2><div class="error">查询失败: ${error.message}</div>`;
+            }
+        }
+        
+        function renderTimetable(data, container) {
+            if (data.total_routes === 0) {
+                container.innerHTML = `<h2>📋 查询结果 - ${data.station_name}</h2><div class="empty">未找到该车站的时刻表信息</div>`;
+                return;
+            }
+            
+            let html = `<h2>📋 查询结果 - ${data.station_name}`;
+            if (data.station_short_id) {
+                html += ` (ID: ${data.station_short_id})`;
+            }
+            html += '</h2>';
+            
+            data.routes.forEach(route => {
+                const colorHex = '#' + route.route_color.toString(16).padStart(6, '0');
+                
+                html += `
+                <div class="timetable-item">
+                    <div class="route-header">
+                        <div class="route-color" style="background: ${colorHex}">
+                            ${route.route_type.includes('light_rail') ? '🚊' : 
+                              route.route_type.includes('high_speed') ? '🚄' : 
+                              route.route_type.includes('boat') ? '🚢' : '🚇'}
+                        </div>
+                        <div class="route-info">
+                            <h3>${route.route_name}</h3>
+                            <p>第 ${route.station_position}/${route.total_stations} 站 | 类型: ${route.route_type}</p>
+                        </div>
+                    </div>
+                    <div class="station-info">
+                        <div>
+                            <strong>上一站:</strong> ${route.prev_station ? route.prev_station.name : '起点'}
+                        </div>
+                        <div>
+                            <strong>下一站:</strong> ${route.next_station ? route.next_station.name : '终点'}
+                        </div>
+                    </div>
+                </div>`;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        document.getElementById('stationInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchStation();
+            }
+        });
+    </script>
+</body>
+</html>
+'''
 
 
 def run():
