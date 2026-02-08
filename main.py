@@ -166,29 +166,6 @@ def api_find_route():
     
     try:
         if algorithm in ['default', 'theory', 'real']:
-            # 根据MTR_VER选择对应的寻路逻辑
-            if config['MTR_VER'] == 3:
-                # v3版本的寻路逻辑
-                G = create_graph(
-                    station_data,
-                    data.get('ignored_lines', []),
-                    not data.get('disable_high_speed', False),
-                    not data.get('disable_boat', False),
-                    data.get('enable_wild', False),
-                    data.get('only_lrt', False),
-                    data.get('avoid_stations', []),
-                    RouteType.WAITING if algorithm == 'default' else RouteType.IN_THEORY,
-                    config['ORIGINAL_IGNORED_LINES'],
-                    config['INTERVAL_PATH'],
-                    '', '',
-                    config['LOCAL_FILE_PATH'],
-                    config['STATION_TABLE'],
-                    config['WILD_ADDITION'],
-                    config['TRANSFER_ADDITION'],
-                    config['MAX_WILD_BLOCKS'],
-                    config['MTR_VER'],
-                    True
-                )
             # 统一处理所有版本的数据格式
             # 确保station_data是列表格式，与源程序兼容
             if isinstance(station_data, dict):
@@ -202,8 +179,7 @@ def api_find_route():
                 # 其他情况，返回错误
                 return jsonify({'error': '无效的数据格式'}), 400
             
-            # 使用完整的station_data列表（而非单个元素）调用create_graph
-            # create_graph函数期望第一个参数是列表格式
+            # 根据MTR_VER选择对应的寻路逻辑
             G = create_graph(
                 station_data,
                 data.get('ignored_lines', []),
@@ -239,8 +215,33 @@ def api_find_route():
                 # 找不到路线
                 return jsonify({'error': '找不到路线，请尝试调整选项'}), 400
             else:
-                # 返回正常的寻路结果
-                return jsonify({'result': result})
+                # 修复结果格式，使其与前端期望的格式匹配
+                # 前端期望的格式：[0: ?, 1: ?, 2: ?, 3: 总用时, 4: 车站列表, 5: ?, 6: 路线详情, 7: 乘车时间, 8: 等车时间]
+                
+                # 解析原始结果
+                # result = (station_str, shortest_distance, waiting_time, riding_time, every_route_time)
+                station_str, shortest_distance, waiting_time, riding_time, every_route_time = result
+                
+                # 将车站字符串转换为车站列表
+                # 原始格式："车站1 -> 路线1 -> 车站2 -> 路线2 -> 车站3"
+                # 需要转换为：["车站1", "路线1", "车站2", "路线2", "车站3"]
+                station_names = station_str.split(' ->\n')
+                
+                # 构建符合前端期望的结果数组
+                formatted_result = [
+                    None,  # 占位符0
+                    None,  # 占位符1
+                    None,  # 占位符2
+                    shortest_distance,  # 总用时 (元素3)
+                    station_names,  # 车站列表 (元素4)
+                    None,  # 占位符5
+                    every_route_time,  # 路线详情 (元素6)
+                    riding_time,  # 乘车时间 (元素7)
+                    waiting_time  # 等车时间 (元素8)
+                ]
+                
+                # 返回调整后的结果
+                return jsonify({'result': formatted_result})
         elif algorithm == 'real_v4':
             # 使用mtr_pathfinder_v4.py的CSA算法
             # 这里需要实现完整的CSA算法调用逻辑
