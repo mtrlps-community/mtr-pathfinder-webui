@@ -306,19 +306,20 @@
         // 1. 创建时间信息部分
         const timeInfoDiv = document.createElement('div');
         timeInfoDiv.className = 'time-info';
+        timeInfoDiv.id = 'time-info';
         timeInfoDiv.innerHTML = `
             <h3>路线概览</h3>
             <div class="time-grid">
                 <div class="time-item">
-                    <strong>${formatTime(totalTime)}</strong>
+                    <strong id="total-time">${formatTime(totalTime)}</strong>
                     <span>总用时</span>
                 </div>
                 <div class="time-item">
-                    <strong>${formatTime(travelingTime)}</strong>
+                    <strong id="traveling-time">${formatTime(travelingTime)}</strong>
                     <span>乘车时间</span>
                 </div>
                 <div class="time-item">
-                    <strong>${formatTime(waitingTime)}</strong>
+                    <strong id="waiting-time">${formatTime(waitingTime)}</strong>
                     <span>等车时间</span>
                 </div>
             </div>
@@ -349,6 +350,59 @@
                 return name.replace('|', ' ').trim();
             }
             return name;
+        }
+        
+        // 函数：重新计算并更新总用时
+        function updateTotalTime() {
+            let totalTravelingTime = 0;
+            let totalWaitingTime = 0;
+            
+            // 获取所有路线信息元素
+            const routeInfoElements = document.querySelectorAll('.route-info');
+            
+            // 遍历每个路线信息
+            routeInfoElements.forEach(routeInfo => {
+                // 提取乘车时间或步行时间
+                const timeDetails = routeInfo.querySelectorAll('.time-detail');
+                timeDetails.forEach(detail => {
+                    const timeValue = detail.querySelector('.time-value');
+                    if (timeValue) {
+                        const timeText = timeValue.textContent;
+                        const seconds = parseTimeString(timeText);
+                        
+                        // 判断是乘车时间还是发车间隔
+                        if (detail.textContent.includes('乘车时间') || detail.textContent.includes('步行时间')) {
+                            totalTravelingTime += seconds;
+                        } else if (detail.textContent.includes('发车间隔')) {
+                            totalWaitingTime += seconds;
+                        }
+                    }
+                });
+            });
+            
+            // 计算总用时
+            const totalTime = totalTravelingTime + totalWaitingTime;
+            
+            // 更新时间显示
+            document.getElementById('total-time').textContent = formatTime(totalTime);
+            document.getElementById('traveling-time').textContent = formatTime(totalTravelingTime);
+            document.getElementById('waiting-time').textContent = formatTime(totalWaitingTime);
+        }
+        
+        // 辅助函数：解析时间字符串为秒数
+        function parseTimeString(timeStr) {
+            const parts = timeStr.split(':');
+            let seconds = 0;
+            
+            if (parts.length === 3) {
+                // h:mm:ss
+                seconds = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
+            } else if (parts.length === 2) {
+                // mm:ss
+                seconds = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+            }
+            
+            return seconds;
         }
         
         // 函数：构建路线信息
@@ -399,60 +453,63 @@
             }
             routeInfoDiv.appendChild(routeTag);
             
-            // 显示方向指示器（终点站）
-            // terminus 的格式可能是：
-            //   - 普通路线：("终点站中文", "终点站英文") 元组
-            //   - 环线：(true, "环线中文", "环线英文") 元组
-            //   - 字符串格式
-            const directionIndicator = document.createElement('div');
-            directionIndicator.className = 'direction-indicator';
-            
-            let terminusDisplay = '';
-            
-            // 在JavaScript中，Python元组会被转换为数组，所以直接检查是否为数组
-            if (Array.isArray(terminus)) {
-                if (terminus.length >= 2) {
-                    if (terminus[0] === true && terminus.length >= 3) {
-                        // 环线格式：[true, "环线中文", "环线英文"]
-                        const terminus1 = formatTerminusName(terminus[1]);
-                        const terminus2 = formatTerminusName(terminus[2]);
-                        // 直接显示环线信息，中英文之间空一格
-                        terminusDisplay = `${terminus1} ${terminus2}`;
-                    } else {
-                        // 普通路线：["终点站中文", "终点站英文"]
-                        const terminus1 = formatTerminusName(terminus[0]);
-                        const terminus2 = formatTerminusName(terminus[1]);
-                        // 直接显示终点站信息，中英文之间空一格
-                        terminusDisplay = `${terminus1} ${terminus2}`;
+            // 只有非步行路线才显示方向指示器
+            if (!isWalk) {
+                // 显示方向指示器（终点站）
+                // terminus 的格式可能是：
+                //   - 普通路线：("终点站中文", "终点站英文") 元组
+                //   - 环线：(true, "环线中文", "环线英文") 元组
+                //   - 字符串格式
+                const directionIndicator = document.createElement('div');
+                directionIndicator.className = 'direction-indicator';
+                
+                let terminusDisplay = '';
+                
+                // 在JavaScript中，Python元组会被转换为数组，所以直接检查是否为数组
+                if (Array.isArray(terminus)) {
+                    if (terminus.length >= 2) {
+                        if (terminus[0] === true && terminus.length >= 3) {
+                            // 环线格式：[true, "环线中文", "环线英文"]
+                            const terminus1 = formatTerminusName(terminus[1]);
+                            const terminus2 = formatTerminusName(terminus[2]);
+                            // 直接显示环线信息，中英文之间空一格
+                            terminusDisplay = `${terminus1} ${terminus2}`;
+                        } else {
+                            // 普通路线：["终点站中文", "终点站英文"]
+                            const terminus1 = formatTerminusName(terminus[0]);
+                            const terminus2 = formatTerminusName(terminus[1]);
+                            // 直接显示终点站信息，中英文之间空一格
+                            terminusDisplay = `${terminus1} ${terminus2}`;
+                        }
                     }
-                }
-            } else if (typeof terminus === 'object' && terminus !== null) {
-                // 处理对象格式（如果有的话）
-                const keys = Object.keys(terminus);
-                if (keys.length >= 2) {
-                    if (terminus[0] === true && keys.length >= 3) {
-                        // 环线格式：{0: true, 1: "环线中文", 2: "环线英文"}
-                        const terminus1 = formatTerminusName(terminus[1]);
-                        const terminus2 = formatTerminusName(terminus[2]);
-                        // 直接显示环线信息，中英文之间空一格
-                        terminusDisplay = `${terminus1} ${terminus2}`;
-                    } else {
-                        // 普通路线：{0: "终点站中文", 1: "终点站英文"}
-                        const terminus1 = formatTerminusName(terminus[0]);
-                        const terminus2 = formatTerminusName(terminus[1]);
-                        // 直接显示终点站信息，中英文之间空一格
-                        terminusDisplay = `${terminus1} ${terminus2}`;
+                } else if (typeof terminus === 'object' && terminus !== null) {
+                    // 处理对象格式（如果有的话）
+                    const keys = Object.keys(terminus);
+                    if (keys.length >= 2) {
+                        if (terminus[0] === true && keys.length >= 3) {
+                            // 环线格式：{0: true, 1: "环线中文", 2: "环线英文"}
+                            const terminus1 = formatTerminusName(terminus[1]);
+                            const terminus2 = formatTerminusName(terminus[2]);
+                            // 直接显示环线信息，中英文之间空一格
+                            terminusDisplay = `${terminus1} ${terminus2}`;
+                        } else {
+                            // 普通路线：{0: "终点站中文", 1: "终点站英文"}
+                            const terminus1 = formatTerminusName(terminus[0]);
+                            const terminus2 = formatTerminusName(terminus[1]);
+                            // 直接显示终点站信息，中英文之间空一格
+                            terminusDisplay = `${terminus1} ${terminus2}`;
+                        }
                     }
+                } else if (typeof terminus === 'string') {
+                    // 字符串格式，可能包含 | 分隔符
+                    const formattedTerminus = formatTerminusName(terminus);
+                    // 直接显示终点站信息
+                    terminusDisplay = formattedTerminus;
                 }
-            } else if (typeof terminus === 'string') {
-                // 字符串格式，可能包含 | 分隔符
-                const formattedTerminus = formatTerminusName(terminus);
-                // 直接显示终点站信息
-                terminusDisplay = formattedTerminus;
+                
+                directionIndicator.textContent = terminusDisplay;
+                routeInfoDiv.appendChild(directionIndicator);
             }
-            
-            directionIndicator.textContent = terminusDisplay;
-            routeInfoDiv.appendChild(directionIndicator);
             
             // 显示乘车时长或步行时间
             const durationDiv = document.createElement('div');
@@ -531,6 +588,8 @@
                         const newRouteInfo = buildRouteInfo(otherRoute, matchedRouteDetails);
                         // 替换当前路线信息
                         routeInfoDiv.parentNode.replaceChild(newRouteInfo, routeInfoDiv);
+                        // 更新总用时
+                        updateTotalTime();
                     });
                     
                     otherRoutesList.appendChild(otherRouteTag);
@@ -628,10 +687,13 @@
                 }
                 routeInfoDiv.appendChild(routeTag);
                 
-                const directionIndicator = document.createElement('div');
-                directionIndicator.className = 'direction-indicator';
-                directionIndicator.textContent = `前往 ${nextStation}`;
-                routeInfoDiv.appendChild(directionIndicator);
+                // 只有非步行路线才显示方向指示器
+                if (!isWalk) {
+                    const directionIndicator = document.createElement('div');
+                    directionIndicator.className = 'direction-indicator';
+                    directionIndicator.textContent = `前往 ${nextStation}`;
+                    routeInfoDiv.appendChild(directionIndicator);
+                }
                 
                 routeStep.appendChild(routeInfoDiv);
             }
