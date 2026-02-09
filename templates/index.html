@@ -54,23 +54,23 @@
                 <div class="mb-6">
                     <h3 class="text-lg font-semibold mb-3">寻路设置</h3>
                     
-                    <div class="space-y-2">
-                        <label class="flex items-center">
+                    <div class="route-settings flex flex-wrap gap-4">
+                        <label class="flex items-center p-2 bg-gray-100 rounded-md cursor-pointer hover:bg-gray-200 transition-colors">
                             <input type="checkbox" id="disable-high-speed" name="disable_high_speed" class="form-checkbox">
                             <span class="ml-2 text-gray-700">禁高铁</span>
                         </label>
                         
-                        <label class="flex items-center">
+                        <label class="flex items-center p-2 bg-gray-100 rounded-md cursor-pointer hover:bg-gray-200 transition-colors">
                             <input type="checkbox" id="disable-boat" name="disable_boat" class="form-checkbox">
                             <span class="ml-2 text-gray-700">禁船</span>
                         </label>
                         
-                        <label class="flex items-center">
+                        <label class="flex items-center p-2 bg-gray-100 rounded-md cursor-pointer hover:bg-gray-200 transition-colors">
                             <input type="checkbox" id="enable-wild" name="enable_wild" class="form-checkbox">
                             <span class="ml-2 text-gray-700">越野</span>
                         </label>
                         
-                        <label class="flex items-center">
+                        <label class="flex items-center p-2 bg-gray-100 rounded-md cursor-pointer hover:bg-gray-200 transition-colors">
                             <input type="checkbox" id="only-lrt" name="only_lrt" class="form-checkbox">
                             <span class="ml-2 text-gray-700">仅轻轨</span>
                         </label>
@@ -81,13 +81,12 @@
                 <div class="mb-6">
                     <h3 class="text-lg font-semibold mb-3">寻路算法</h3>
                     
-                    <div class="slider-container">
-                        <input type="range" id="algorithm-slider" min="0" max="3" value="0" class="slider">
-                        <div class="flex justify-between mt-2 text-sm text-gray-600">
-                            <span>默认</span>
-                            <span>理论</span>
-                            <span>实时</span>
-                            <span>实时[v4]</span>
+                    <div class="algorithm-tabs">
+                        <div class="flex overflow-x-auto no-scrollbar">
+                            <div class="algorithm-tab active" data-index="0" data-value="default">默认</div>
+                            <div class="algorithm-tab" data-index="1" data-value="theory">理论</div>
+                            <div class="algorithm-tab" data-index="2" data-value="real">实时</div>
+                            <div class="algorithm-tab" data-index="3" data-value="real_v4">实时[v4]</div>
                         </div>
                         <div class="mt-2 text-center font-medium text-blue-500" id="algorithm-display">默认（考虑等车时间）</div>
                         <input type="hidden" id="algorithm" name="algorithm" value="default">
@@ -158,15 +157,24 @@
         { value: 'real_v4', label: '实时[v4]（CSA算法）' }
     ];
     
-    // 算法滑块处理
-    const algorithmSlider = document.getElementById('algorithm-slider');
+    // 算法选项卡处理
+    const algorithmTabs = document.querySelectorAll('.algorithm-tab');
     const algorithmDisplay = document.getElementById('algorithm-display');
     const algorithmInput = document.getElementById('algorithm');
     
-    algorithmSlider.addEventListener('input', function() {
-        const index = parseInt(this.value);
-        algorithmDisplay.textContent = algorithmMap[index].label;
-        algorithmInput.value = algorithmMap[index].value;
+    algorithmTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            // 移除所有选项卡的active类
+            algorithmTabs.forEach(t => t.classList.remove('active'));
+            
+            // 添加当前选项卡的active类
+            this.classList.add('active');
+            
+            // 更新算法显示和隐藏输入
+            const index = parseInt(this.dataset.index);
+            algorithmDisplay.textContent = algorithmMap[index].label;
+            algorithmInput.value = algorithmMap[index].value;
+        });
     });
     
     // 车站模糊搜索

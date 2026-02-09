@@ -98,6 +98,12 @@ def stations():
             elif isinstance(data, dict):
                 # 如果是字典格式，将其转换为列表格式
                 stations_data = list(data['stations'].values())
+    
+    # 将车站名称中的竖杠替换为空格
+    for station in stations_data:
+        if isinstance(station, dict) and 'name' in station:
+            station['name'] = station['name'].replace('|', ' ')
+    
     return render_template('stations.html', stations=stations_data)
 
 @app.route('/routes')
@@ -109,10 +115,20 @@ def routes():
             data = json.load(f)
             # 统一处理，无论MTR_VER版本，都使用列表格式
             if isinstance(data, list) and len(data) > 0:
-                routes_data = data[0]['routes']
+                # 检查data[0]['routes']是否为字典，如果是则转换为列表
+                if isinstance(data[0]['routes'], dict):
+                    routes_data = list(data[0]['routes'].values())
+                else:
+                    routes_data = data[0]['routes']
             elif isinstance(data, dict):
                 # 如果是字典格式，将其转换为列表格式
                 routes_data = list(data['routes'].values())
+    
+    # 将线路名称中的竖杠替换为空格
+    for route in routes_data:
+        if isinstance(route, dict) and 'name' in route:
+            route['name'] = route['name'].replace('|', ' ')
+    
     return render_template('routes.html', routes=routes_data)
 
 @app.route('/timetable')
@@ -283,7 +299,9 @@ def api_search_stations():
     results = []
     for station in stations:
         if query in station['name'].lower():
-            results.append(station['name'])
+            # 将车站名称中的竖线替换为空格
+            formatted_name = station['name'].replace('|', ' ')
+            results.append(formatted_name)
     
     return jsonify(results[:10])  # 限制返回10个结果
 
