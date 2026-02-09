@@ -1,4 +1,6 @@
-Flask==3.0.0
-opencc==1.1.1
-networkx==3.2.1
-requests==2.31.0
+Flask
+fonttools
+networkx
+OpenCC==1.1.1
+Pillow
+Requests
