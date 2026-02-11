@@ -7,6 +7,53 @@
         <div class="card">
             <h2 class="text-2xl font-bold mb-6">路径查找</h2>
             
+            <!-- 简码功能 -->
+            <div class="mb-6">
+                <div class="flex items-center mb-2">
+                    <label class="block text-gray-700 font-medium mr-2" for="shortcode">
+                        <i class="fa fa-code mr-1"></i> 简码输入
+                    </label>
+                    <button type="button" class="text-blue-500 text-sm hover:underline" id="shortcode-help">
+                        格式说明
+                    </button>
+                </div>
+                <div class="relative">
+                    <input type="text" id="shortcode" class="form-input" placeholder="/路线 <出发站>;<到达站>;[详细];[理论];[越野];[禁高铁];[禁船];[仅轻铁];[禁路线;<路线>;<路线> ...];[禁车站;<车站>;<车站> ...]]">
+                </div>
+                <!-- 简码格式说明弹窗 -->
+                <div id="shortcode-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-white p-6 rounded-lg max-w-lg w-full mx-4">
+                        <h3 class="text-xl font-bold mb-4">简码格式说明</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <h4 class="font-semibold mb-2">调用格式：</h4>
+                                <p class="bg-gray-100 p-3 rounded break-all">/路线 <出发站>;<到达站>;[详细];[理论];[越野];[禁高铁];[禁船];[仅轻铁];[禁路线;<路线>;<路线> ...];[禁车站;<车站>;<车站> ...]]</p>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold mb-2">其他参数：</h4>
+                                <ul class="list-disc pl-5 space-y-2">
+                                    <li><strong>默认</strong> -> 实际能坐的最快路线（计算等车时间），以图片形式输出寻路结果</li>
+                                    <li><strong>实时</strong> -> 实时寻路（适用于 LPS 4.0.0 测试服务器）</li>
+                                    <li><strong>详细</strong> -> 输出详细信息，包括线路间隔以及每一站的等车时间</li>
+                                    <li><strong>理论</strong> -> 理论最快路线，不考虑线路上是否有车在跑</li>
+                                    <li><strong>越野</strong> -> 允许在两个车站间步行，最大范围为 1500 格</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold mb-2">注意事项：</h4>
+                                <ul class="list-disc pl-5 space-y-2">
+                                    <li>&lt;&gt; 必填，[] 选填</li>
+                                    <li>“；”、“;” 都可以使用</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="mt-6 flex justify-end">
+                            <button type="button" id="close-modal" class="btn-primary">关闭</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <form id="route-form">
                 <!-- 起点站 -->
                 <div class="mb-4">
@@ -35,19 +82,19 @@
                 <!-- 禁路线 -->
                 <div class="mb-4">
                     <label class="block text-gray-700 font-medium mb-2" for="ignored-lines">
-                        <i class="fa fa-ban mr-1"></i> 禁路线（逗号分隔）
+                        <i class="fa fa-ban mr-1"></i> 禁路线（分号分隔）
                     </label>
                     <input type="text" id="ignored-lines" name="ignored_lines" 
-                           class="form-input" placeholder="输入要禁止的路线，以逗号分隔">
+                           class="form-input" placeholder="输入要禁止的路线，以分号分隔">
                 </div>
                 
                 <!-- 禁车站 -->
                 <div class="mb-4">
                     <label class="block text-gray-700 font-medium mb-2" for="avoid-stations">
-                        <i class="fa fa-ban mr-1"></i> 禁车站（逗号分隔）
+                        <i class="fa fa-ban mr-1"></i> 禁车站（分号分隔）
                     </label>
                     <input type="text" id="avoid-stations" name="avoid_stations" 
-                           class="form-input" placeholder="输入要避开的车站，以逗号分隔">
+                           class="form-input" placeholder="输入要避开的车站，以分号分隔">
                 </div>
                 
                 <!-- 寻路设置 -->
@@ -157,6 +204,247 @@
         { value: 'real_v4', label: '实时[v4]（CSA算法）' }
     ];
     
+    // 简码功能
+    document.addEventListener('DOMContentLoaded', function() {
+        // 简码格式说明弹窗
+        const shortcodeHelpBtn = document.getElementById('shortcode-help');
+        const shortcodeModal = document.getElementById('shortcode-modal');
+        const closeModalBtn = document.getElementById('close-modal');
+        
+        shortcodeHelpBtn.addEventListener('click', function() {
+            shortcodeModal.classList.remove('hidden');
+        });
+        
+        closeModalBtn.addEventListener('click', function() {
+            shortcodeModal.classList.add('hidden');
+        });
+        
+        shortcodeModal.addEventListener('click', function(e) {
+            if (e.target === shortcodeModal) {
+                shortcodeModal.classList.add('hidden');
+            }
+        });
+        
+        // 简码输入框
+        const shortcodeInput = document.getElementById('shortcode');
+        
+        // 表单元素
+        const startStationInput = document.getElementById('start-station');
+        const endStationInput = document.getElementById('end-station');
+        const ignoredLinesInput = document.getElementById('ignored-lines');
+        const avoidStationsInput = document.getElementById('avoid-stations');
+        const disableHighSpeedCheckbox = document.getElementById('disable-high-speed');
+        const disableBoatCheckbox = document.getElementById('disable-boat');
+        const enableWildCheckbox = document.getElementById('enable-wild');
+        const onlyLrtCheckbox = document.getElementById('only-lrt');
+        const algorithmInput = document.getElementById('algorithm');
+        const algorithmDisplay = document.getElementById('algorithm-display');
+        
+        // 解析简码并填充到表单
+        function parseShortcode(shortcode) {
+            // 重置表单
+            startStationInput.value = '';
+            endStationInput.value = '';
+            ignoredLinesInput.value = '';
+            avoidStationsInput.value = '';
+            disableHighSpeedCheckbox.checked = false;
+            disableBoatCheckbox.checked = false;
+            enableWildCheckbox.checked = false;
+            onlyLrtCheckbox.checked = false;
+            algorithmInput.value = 'default';
+            algorithmDisplay.textContent = '默认（考虑等车时间）';
+            
+            // 移除算法选项卡的active类
+            document.querySelectorAll('.algorithm-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            // 设置默认算法选项卡为active
+            document.querySelector('.algorithm-tab[data-value="default"]').classList.add('active');
+            
+            // 解析简码
+            if (!shortcode.startsWith('/路线')) {
+                return;
+            }
+            
+            // 移除前缀
+            const content = shortcode.replace(/^\/路线\s*/, '');
+            // 统一分隔符
+            const parts = content.split(/[；;]/).map(part => part.trim()).filter(Boolean);
+            
+            if (parts.length < 2) {
+                return;
+            }
+            
+            // 出发站和到达站
+            startStationInput.value = parts[0].replace(/^<|>$/g, '');
+            endStationInput.value = parts[1].replace(/^<|>$/g, '');
+            
+            // 处理其他参数
+            let i = 2;
+            while (i < parts.length) {
+                const part = parts[i];
+                
+                switch (part) {
+                    case '详细':
+                        // 详细信息暂不处理，因为前端没有对应的选项
+                        i++;
+                        break;
+                    case '理论':
+                        algorithmInput.value = 'theory';
+                        algorithmDisplay.textContent = '理论（不考虑等车时间）';
+                        document.querySelectorAll('.algorithm-tab').forEach(tab => {
+                            tab.classList.remove('active');
+                        });
+                        document.querySelector('.algorithm-tab[data-value="theory"]').classList.add('active');
+                        i++;
+                        break;
+                    case '实时':
+                        algorithmInput.value = 'real';
+                        algorithmDisplay.textContent = '实时';
+                        document.querySelectorAll('.algorithm-tab').forEach(tab => {
+                            tab.classList.remove('active');
+                        });
+                        document.querySelector('.algorithm-tab[data-value="real"]').classList.add('active');
+                        i++;
+                        break;
+                    case '越野':
+                        enableWildCheckbox.checked = true;
+                        i++;
+                        break;
+                    case '禁高铁':
+                        disableHighSpeedCheckbox.checked = true;
+                        i++;
+                        break;
+                    case '禁船':
+                        disableBoatCheckbox.checked = true;
+                        i++;
+                        break;
+                    case '仅轻铁':
+                        onlyLrtCheckbox.checked = true;
+                        i++;
+                        break;
+                    case '禁路线':
+                        // 处理禁路线，收集后续所有路线直到遇到下一个关键字
+                        i++;
+                        const routeLines = [];
+                        // 收集所有后续的路线，直到遇到下一个关键字
+                        while (i < parts.length && !['禁车站', '详细', '理论', '实时', '越野', '禁高铁', '禁船', '仅轻铁'].includes(parts[i])) {
+                            routeLines.push(parts[i]);
+                            i++;
+                        }
+                        ignoredLinesInput.value = routeLines.join(';');
+                        break;
+                    case '禁车站':
+                        // 处理禁车站，收集后续所有车站直到遇到下一个关键字
+                        i++;
+                        const avoidStations = [];
+                        // 收集所有后续的车站，直到遇到下一个关键字
+                        while (i < parts.length && !['禁路线', '详细', '理论', '实时', '越野', '禁高铁', '禁船', '仅轻铁'].includes(parts[i])) {
+                            avoidStations.push(parts[i]);
+                            i++;
+                        }
+                        avoidStationsInput.value = avoidStations.join(';');
+                        break;
+                    default:
+                        // 忽略未知参数
+                        i++;
+                        break;
+                }
+            }
+        }
+        
+        // 生成简码
+        function generateShortcode() {
+            let shortcode = '/路线 ';
+            
+            // 出发站和到达站
+            shortcode += `${startStationInput.value};${endStationInput.value}`;
+            
+            // 算法参数
+            if (algorithmInput.value === 'theory') {
+                shortcode += ';理论';
+            } else if (algorithmInput.value === 'real') {
+                shortcode += ';实时';
+            }
+            
+            // 越野
+            if (enableWildCheckbox.checked) {
+                shortcode += ';越野';
+            }
+            
+            // 禁高铁
+            if (disableHighSpeedCheckbox.checked) {
+                shortcode += ';禁高铁';
+            }
+            
+            // 禁船
+            if (disableBoatCheckbox.checked) {
+                shortcode += ';禁船';
+            }
+            
+            // 仅轻铁
+            if (onlyLrtCheckbox.checked) {
+                shortcode += ';仅轻铁';
+            }
+            
+            // 禁路线
+            const ignoredLines = ignoredLinesInput.value.split(/[,;；]/).map(line => line.trim()).filter(Boolean);
+            if (ignoredLines.length > 0) {
+                shortcode += `;禁路线;${ignoredLines.join(';')}`;
+            }
+            
+            // 禁车站
+            const avoidStations = avoidStationsInput.value.split(/[,;；]/).map(station => station.trim()).filter(Boolean);
+            if (avoidStations.length > 0) {
+                shortcode += `;禁车站;${avoidStations.join(';')}`;
+            }
+            
+            return shortcode;
+        }
+        
+        // 将generateShortcode函数暴露到全局，以便在setupStationSearch函数中调用
+        window.generateShortcode = generateShortcode;
+        
+        // 简码输入框变化时，填充到表单
+        shortcodeInput.addEventListener('input', function() {
+            parseShortcode(this.value);
+        });
+        
+        // 表单元素变化时，生成简码
+        const formElements = [
+            startStationInput,
+            endStationInput,
+            ignoredLinesInput,
+            avoidStationsInput,
+            disableHighSpeedCheckbox,
+            disableBoatCheckbox,
+            enableWildCheckbox,
+            onlyLrtCheckbox,
+            algorithmInput
+        ];
+        
+        formElements.forEach(element => {
+            if (element.type === 'checkbox') {
+                element.addEventListener('change', function() {
+                    shortcodeInput.value = generateShortcode();
+                });
+            } else {
+                element.addEventListener('input', function() {
+                    shortcodeInput.value = generateShortcode();
+                });
+            }
+        });
+        
+        // 算法选项卡变化时，更新简码
+        document.querySelectorAll('.algorithm-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                setTimeout(() => {
+                    shortcodeInput.value = generateShortcode();
+                }, 0);
+            });
+        });
+    });
+    
     // 算法选项卡处理
     const algorithmTabs = document.querySelectorAll('.algorithm-tab');
     const algorithmDisplay = document.getElementById('algorithm-display');
@@ -202,6 +490,13 @@
                         div.addEventListener('click', () => {
                             input.value = station;
                             suggestions.classList.add('hidden');
+                            // 更新简码
+                            if (window.generateShortcode) {
+                                const shortcodeInput = document.getElementById('shortcode');
+                                if (shortcodeInput) {
+                                    shortcodeInput.value = window.generateShortcode();
+                                }
+                            }
                         });
                         suggestions.appendChild(div);
                     });
@@ -257,6 +552,10 @@
         };
         
         try {
+            // 转换禁路线和禁车站的分隔符为逗号，以适应API要求
+            data.ignored_lines = formData.get('ignored_lines').split(/[,;；]/).map(s => s.trim()).filter(Boolean);
+            data.avoid_stations = formData.get('avoid_stations').split(/[,;；]/).map(s => s.trim()).filter(Boolean);
+            
             // 发送请求
             const response = await fetch('/api/find_route', {
                 method: 'POST',
@@ -419,7 +718,7 @@
             routeInfoDiv.className = 'route-info';
             
             // 解析路线详细信息，添加默认值
-            const [, , color = '#4a90e2', routeName = '', terminus = '', duration = 0, interval = 0, , trainType = 'train_normal'] = routeDetail;
+            const [, , color = '#4a90e2', routeName = '', terminus = '', duration = 0, interval = 0, trainType = 'train_normal'] = routeDetail;
             
             // 处理路线名称，只保留中文和英文，去除方向和分隔符
             // 原始格式："地鐵南大陸綫北段|Metro South Continental Line N. Section||to New Red Leaves"
@@ -551,7 +850,7 @@
                     }
                     
                     const otherRoute = matchedRouteDetails[j];
-                    const [, , otherColor = '#4a90e2', otherRouteName = '', , otherDuration = 0, otherInterval = 0, , otherTrainType = 'train_normal'] = otherRoute;
+                    const [, , otherColor = '#4a90e2', otherRouteName = '', , otherDuration = 0, otherInterval = 0, otherTrainType = 'train_normal'] = otherRoute;
                     
                     // 处理其他路线名称
                     let processedOtherRouteName = otherRouteName;

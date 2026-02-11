@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify
 import os
 import json
 import hashlib
@@ -6,23 +6,9 @@ from datetime import datetime
 
 # 从包装模块导入，避免opencc初始化错误
 from mtr_pathfinder_wrapper import (
-    fetch_data_v3,
     create_graph,
     find_shortest_route,
-    RouteType,
-    fetch_data_v4,
-    gen_departure,
-    gen_route_interval,
-    gen_timetable,
-    load_tt,
-    CSA,
-    process_path,
-    RouteTypeV4,
-    get_text_timetable,
-    get_train,
-    main_sta_timetable,
-    main_get_sta_directions,
-    TIMETABLE_AVAILABLE
+    RouteType
 )
 
 app = Flask(__name__)
@@ -131,9 +117,7 @@ def routes():
     
     return render_template('routes.html', routes=routes_data)
 
-@app.route('/timetable')
-def timetable():
-    return render_template('timetable.html')
+
 
 @app.route('/admin')
 def admin():
@@ -375,41 +359,7 @@ def api_update_data():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/get_timetable', methods=['POST'])
-def api_get_timetable():
-    # 获取时刻表
-    data = request.json
-    
-    if not os.path.exists(config['LOCAL_FILE_PATH']):
-        return jsonify({'error': '车站数据不存在'}), 400
-    
-    with open(config['LOCAL_FILE_PATH'], 'r', encoding='utf-8') as f:
-        station_data = json.load(f)
-    
-    try:
-        if data['type'] == 'station':
-            # 按车站获取时刻表
-            timetable = get_text_timetable(
-                station_data,
-                data['station'],
-                int(datetime.now().timestamp()),
-                {}  # 这里需要传入station_tt参数
-            )
-            return jsonify({'timetable': timetable})
-        elif data['type'] == 'train':
-            # 按列车获取时刻表
-            timetable = get_train(
-                station_data,
-                data['station'],
-                data['train_id'],
-                {},  # station_tt
-                {}   # train_tt
-            )
-            return jsonify({'timetable': timetable})
-        else:
-            return jsonify({'error': '无效的时刻表类型'}), 400
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
