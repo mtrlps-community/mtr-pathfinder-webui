@@ -820,9 +820,13 @@ def save_image(route_type: RouteType, every_route_time: list,
     for route_data in every_route_time:
         route_img = Image.open(PNG_PATH + os.sep + f'{route_data[-1]}.png')
         terminus = route_data[4][0] + '方向 To ' + route_data[4][1]
+
         time1 = str(strftime('%H:%M:%S', gmtime(route_data[5])))
         time2 = str(strftime('%H:%M:%S', gmtime(route_data[6])))
-        time3 = str(strftime('%M:%S', gmtime(route_data[6] - route_data[5])))
+        time3 = str(strftime('%H:%M:%S', gmtime(route_data[6] - route_data[5])))
+        if int(time3.split(':', maxsplit=1)[0]) == 0:
+            time3 = ''.join(time3.split(':', maxsplit=1)[1:])
+
         pattern.append((ImagePattern.STATION, route_data[0],
                         route_data[2]))  # 车站
         pattern.append((ImagePattern.TEXT, time1))  # 发车时间
@@ -1126,8 +1130,8 @@ def run():
 
     # 文件设置
     link_hash = hashlib.md5(LINK.encode('utf-8')).hexdigest()
-    LOCAL_FILE_PATH = f'mtr-station-data-{link_hash}.json'
-    DEP_PATH = f'mtr-route-data-{link_hash}.json'
+    LOCAL_FILE_PATH = f'mtr-station-data-{link_hash}-mtr4-v4.json'
+    DEP_PATH = f'mtr-route-data-{link_hash}-mtr4-v4.json'
     BASE_PATH = 'mtr_pathfinder_data'
     PNG_PATH = 'mtr_pathfinder_data'
 

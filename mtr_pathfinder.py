@@ -1246,9 +1246,16 @@ def save_image(route_type: RouteType, every_route_time: list,
         else:
             terminus = route_data[4][0] + '方向 To ' + route_data[4][1]
 
-        time1 = str(strftime('%M:%S', gmtime(route_data[5])))
-        time2 = str(strftime('%M:%S', gmtime(route_data[6])))
-        time3 = str(strftime('%M:%S', gmtime(route_data[7])))
+        time1 = str(strftime('%H:%M:%S', gmtime(route_data[5])))
+        time2 = str(strftime('%H:%M:%S', gmtime(route_data[6])))
+        time3 = str(strftime('%H:%M:%S', gmtime(route_data[7])))
+        if int(time1.split(':', maxsplit=1)[0]) == 0:
+            time1 = ''.join(time1.split(':', maxsplit=1)[1:])
+        if int(time2.split(':', maxsplit=1)[0]) == 0:
+            time2 = ''.join(time2.split(':', maxsplit=1)[1:])
+        if int(time3.split(':', maxsplit=1)[0]) == 0:
+            time3 = ''.join(time3.split(':', maxsplit=1)[1:])
+
         if now_sta != last_sta:
             # 正常
             pattern.append((ImagePattern.STATION, route_data[0],
@@ -1588,8 +1595,8 @@ def run():
 
     link_hash = hashlib.md5(LINK.encode('utf-8')).hexdigest()
     # 文件设置
-    LOCAL_FILE_PATH = f'mtr-station-data-{link_hash}-{MTR_VER}.json'
-    INTERVAL_PATH = f'mtr-route-data-{link_hash}-{MTR_VER}.json'
+    LOCAL_FILE_PATH = f'mtr-station-data-{link_hash}-mtr{MTR_VER}-v3.json'
+    INTERVAL_PATH = f'mtr-route-data-{link_hash}-mtr{MTR_VER}-v3.json'
     BASE_PATH = 'mtr_pathfinder_data'
     PNG_PATH = 'mtr_pathfinder_data'
 

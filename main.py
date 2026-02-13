@@ -3,13 +3,157 @@ import os
 import json
 import hashlib
 from datetime import datetime
+import sys
+from io import StringIO
 
-# 从包装模块导入，避免opencc初始化错误
-from mtr_pathfinder_wrapper import (
-    create_graph,
-    find_shortest_route,
-    RouteType
+# 直接导入opencc模块
+from opencc import OpenCC
+
+# 直接导入mtr_pathfinder模块
+import mtr_pathfinder
+from mtr_pathfinder import (
+    fetch_data as original_fetch_data_v3,
+    gen_route_interval as original_gen_route_interval,
+    create_graph as original_create_graph,
+    find_shortest_route as original_find_shortest_route,
+    station_name_to_id as original_station_name_to_id,
+    process_path as original_process_path,
+    RouteType,
+    main as original_main
 )
+
+# 修复v4版本数据结构问题的process_path函数
+def process_path(*args, **kwargs):
+    """
+    修复v4版本数据结构问题的process_path函数
+    当检测到v4版本数据时，自动将其包装成列表格式
+    """
+    # 检查第三个参数是否为数据
+    if len(args) >= 4 and isinstance(args[3], dict) and 'stations' in args[3] and 'routes' in args[3]:
+        # v4版本的数据结构，需要包装成列表格式
+        data = args[3]
+        
+        # 修复数据结构
+        # 检查routes是否已经是列表，如果是则直接使用，否则调用.values()
+        routes_data = data['routes']
+        if isinstance(routes_data, dict):
+            routes_data = list(routes_data.values())
+        
+        fixed_data = [{
+            'stations': data['stations'],
+            'routes': routes_data
+        }]
+        
+        # 创建新的参数列表，替换第三个参数
+        new_args = list(args)
+        new_args[3] = fixed_data
+        
+        # 调用原函数
+        return original_process_path(*new_args, **kwargs)
+    else:
+        # 其他版本或数据结构，直接调用原函数
+        return original_process_path(*args, **kwargs)
+
+# 修复v4版本数据结构问题的station_name_to_id函数
+def station_name_to_id(data, *args, **kwargs):
+    """
+    修复v4版本数据结构问题的station_name_to_id函数
+    当检测到v4版本数据时，自动将其包装成列表格式
+    """
+    # 检查data的数据结构
+    if isinstance(data, dict) and 'stations' in data and 'routes' in data:
+        # v4版本的数据结构，需要包装成列表格式
+        fixed_data = [{
+            'stations': data['stations'],
+            'routes': list(data['routes'].values())
+        }]
+        return original_station_name_to_id(fixed_data, *args, **kwargs)
+    else:
+        # 其他版本或数据结构，直接调用原函数
+        return original_station_name_to_id(data, *args, **kwargs)
+
+# 修复v4版本数据结构问题的create_graph函数
+def create_graph(*args, **kwargs):
+    """
+    修复v4版本数据结构问题的create_graph函数
+    当检测到v4版本数据时，自动将其包装成列表格式
+    """
+    import tempfile
+    import json
+    import os
+    
+    # 检查第一个参数是否为数据
+    if args and isinstance(args[0], dict) and 'stations' in args[0] and 'routes' in args[0]:
+        # v4版本的数据结构，需要包装成列表格式
+        data = args[0]
+        
+        # 修复数据结构
+        # 检查routes是否已经是列表，如果是则直接使用，否则调用.values()
+        routes_data = data['routes']
+        if isinstance(routes_data, dict):
+            routes_data = list(routes_data.values())
+        
+        fixed_data = [{
+            'stations': data['stations'],
+            'routes': routes_data
+        }]
+        
+        # 创建新的参数列表，替换第一个参数
+        new_args = list(args)
+        new_args[0] = fixed_data
+        
+        # 调用原函数
+        return original_create_graph(*new_args, **kwargs)
+    # 检查第一个参数是否为列表，且第一个元素是字典（v3版本数据结构）
+    elif args and isinstance(args[0], list) and len(args[0]) > 0 and isinstance(args[0][0], dict):
+        # v3版本数据结构，直接调用原函数
+        return original_create_graph(*args, **kwargs)
+    else:
+        # 其他版本或数据结构，直接调用原函数
+        return original_create_graph(*args, **kwargs)
+
+# 修复v4版本数据结构问题的find_shortest_route函数
+def find_shortest_route(*args, **kwargs):
+    """
+    修复v4版本数据结构问题的find_shortest_route函数
+    当检测到v4版本数据时，自动将其包装成列表格式
+    """
+    # 检查第三个参数是否为数据
+    if len(args) >= 3 and isinstance(args[2], dict) and 'stations' in args[2] and 'routes' in args[2]:
+        # v4版本的数据结构，需要包装成列表格式
+        data = args[2]
+        
+        # 修复数据结构
+        # 检查routes是否已经是列表，如果是则直接使用，否则调用.values()
+        routes_data = data['routes']
+        if isinstance(routes_data, dict):
+            routes_data = list(routes_data.values())
+        
+        fixed_data = [{
+            'stations': data['stations'],
+            'routes': routes_data
+        }]
+        
+        # 创建新的参数列表，替换第三个参数
+        new_args = list(args)
+        new_args[2] = fixed_data
+        
+        # 调用原函数
+        return original_find_shortest_route(*new_args, **kwargs)
+    else:
+        # 其他版本或数据结构，直接调用原函数
+        return original_find_shortest_route(*args, **kwargs)
+
+# 导入v4版本的函数
+from mtr_pathfinder_v4 import (
+    fetch_data as original_fetch_data_v4
+)
+
+# 替换mtr_pathfinder模块中的函数
+mtr_pathfinder.process_path = process_path
+mtr_pathfinder.station_name_to_id = station_name_to_id
+mtr_pathfinder.create_graph = create_graph
+mtr_pathfinder.find_shortest_route = find_shortest_route
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key'
