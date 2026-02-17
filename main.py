@@ -5,22 +5,13 @@ import hashlib
 from datetime import datetime
 from opencc import OpenCC
 
-# 直接导入mtr_pathfinder模块
-from mtr_pathfinder import (
-    fetch_data as original_fetch_data_v3,
-    gen_route_interval as original_gen_route_interval,
-    create_graph as original_create_graph,
-    find_shortest_route as original_find_shortest_route,
-    station_name_to_id as original_station_name_to_id,
-    process_path as original_process_path,
+from mtr_pathfinder_lib.mtr_pathfinder import (
+    fetch_data as fetch_data_v3,
+    gen_route_interval as gen_route_interval_v3,
     RouteType,
-    main as original_main
 )
 
-# 导入v4版本的函数
-from mtr_pathfinder_v4 import (
-    fetch_data as original_fetch_data_v4
-)
+#from mtr_pathfinder_lib.mtr_pathfinder_v4 import ()
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key'
@@ -318,10 +309,6 @@ def api_update_data():
         import json
         import os
         
-        # 直接从源程序导入函数，确保数据格式一致
-        from mtr_pathfinder import fetch_data as original_fetch_data
-        from mtr_pathfinder import gen_route_interval as original_gen_route_interval
-        
         # 保存原始stdin
         original_stdin = sys.stdin
         # 创建模拟输入流，自动返回'y'
@@ -331,14 +318,14 @@ def api_update_data():
         try:
             # 对于所有版本，统一使用mtr_pathfinder.py中的fetch_data函数
             # 这确保生成的数据格式与源程序完全相同
-            original_fetch_data(
+            fetch_data_v3(
                 config['LINK'],
                 config['LOCAL_FILE_PATH'],
                 config['MTR_VER']
             )
             
             # 生成间隔数据文件，使用源程序的函数
-            original_gen_route_interval(
+            gen_route_interval_v3(
                 config['LOCAL_FILE_PATH'],
                 config['INTERVAL_PATH'],
                 config['LINK'],
@@ -347,7 +334,7 @@ def api_update_data():
             
             # 生成发车数据
             if config['MTR_VER'] == 4:
-                from mtr_pathfinder_v4 import gen_departure as original_gen_departure
+                from mtr_pathfinder_lib.mtr_pathfinder_v4 import gen_departure as original_gen_departure
                 original_gen_departure(
                     config['LINK'],
                     config['DEP_PATH']
