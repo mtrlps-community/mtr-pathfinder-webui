@@ -20,6 +20,13 @@ from mtr_pathfinder_lib.mtr_pathfinder_v4 import (
 app = Flask(__name__)
 app.secret_key = 'your-secret-key'
 
+# 全局进度跟踪变量
+search_progress = {
+    'percentage': 0,
+    'stage': '准备中...',
+    'message': '正在初始化寻路参数...'
+}
+
 # 配置文件路径
 CONFIG_PATH = 'config.json'
 
@@ -216,6 +223,14 @@ def admin_logout():
 
 @app.route('/api/find_route', methods=['POST'])
 def api_find_route():
+    # 重置进度
+    global search_progress
+    search_progress = {
+        'percentage': 0,
+        'stage': '准备中...',
+        'message': '正在初始化寻路参数...'
+    }
+    
     # 处理寻路请求
     data = request.json
     
@@ -225,6 +240,13 @@ def api_find_route():
     
     # 准备参数
     algorithm = data.get('algorithm', 'default')
+    
+    # 更新进度
+    search_progress.update({
+        'percentage': 10,
+        'stage': '验证参数',
+        'message': '正在验证输入参数...'
+    })
     
     # 检查数据文件是否存在
     if algorithm == 'real':
@@ -240,10 +262,24 @@ def api_find_route():
         if not os.path.exists(config['INTERVAL_PATH_V3']):
             return jsonify({'error': '间隔数据不存在，请先更新数据'}), 400
     
+    # 更新进度
+    search_progress.update({
+        'percentage': 20,
+        'stage': '数据验证',
+        'message': '数据文件验证通过，准备开始寻路...'
+    })
+    
     try:
         # 根据算法选择不同的寻路实现
         if algorithm == 'real':
             # 使用v4版程序的寻路功能
+            
+            # 更新进度
+            search_progress.update({
+                'percentage': 30,
+                'stage': '寻路计算',
+                'message': '正在使用实时算法计算路径...'
+            })
             
             # 调用v4版程序的main函数，获取路线详情
             result = mtr_main_v4(
@@ -272,6 +308,13 @@ def api_find_route():
                 gen_image=False,
                 show=False
             )
+            
+            # 更新进度
+            search_progress.update({
+                'percentage': 70,
+                'stage': '结果处理',
+                'message': '寻路计算完成，正在处理结果...'
+            })
             
             # 检查寻路结果
             if result == []:
@@ -322,9 +365,23 @@ def api_find_route():
         else:
             # 使用v3版程序的寻路功能
             
+            # 更新进度
+            search_progress.update({
+                'percentage': 30,
+                'stage': '数据加载',
+                'message': '正在加载车站数据...'
+            })
+            
             # 读取数据文件
             with open(config['LOCAL_FILE_PATH'], encoding='utf-8') as f:
                 data_file = json.load(f)
+            
+            # 更新进度
+            search_progress.update({
+                'percentage': 40,
+                'stage': '参数准备',
+                'message': '正在准备寻路参数...'
+            })
             
             IN_THEORY = algorithm == 'theory'
             
@@ -333,6 +390,13 @@ def api_find_route():
             
             # 转换车站表格式
             station_table = {x.lower(): y.lower() for x, y in config['STATION_TABLE'].items()}
+            
+            # 更新进度
+            search_progress.update({
+                'percentage': 50,
+                'stage': '图构建',
+                'message': '正在构建站点连接图...'
+            })
             
             # 创建图
             G = create_graph_v3(
@@ -356,12 +420,26 @@ def api_find_route():
                 True
             )
             
+            # 更新进度
+            search_progress.update({
+                'percentage': 70,
+                'stage': '寻路计算',
+                'message': '正在使用最短路径算法计算最优路线...'
+            })
+            
             # 调用寻路函数获取完整结果
             result = find_shortest_route_v3(
                 G, data['start'], data['end'],
                 data_file, station_table,
                 config['MTR_VER']
             )
+            
+            # 更新进度
+            search_progress.update({
+                'percentage': 90,
+                'stage': '结果处理',
+                'message': '寻路计算完成，正在处理结果...'
+            })
             
             # 检查寻路结果
             station_str, shortest_distance, waiting_time, riding_time, every_route_time = result
@@ -387,6 +465,13 @@ def api_find_route():
                     waiting_time  # 等车时间 (元素4)
                 ]
         
+        # 更新进度为100%
+        search_progress.update({
+            'percentage': 100,
+            'stage': '完成',
+            'message': '路径计算完成！'
+        })
+        
         # 返回调整后的结果，包含寻路模式
         return jsonify({'result': formatted_result, 'algorithm': algorithm})
     except Exception as e:
@@ -397,7 +482,22 @@ def api_find_route():
         
         error_detail = traceback.format_exc()
         logger.error(f"寻路错误: {error_detail}")
+        
+        # 出错时重置进度
+        search_progress.update({
+            'percentage': 0,
+            'stage': '错误',
+            'message': f'寻路计算出错: {str(e)}'
+        })
+        
         return jsonify({'error': str(e), 'detail': error_detail}), 500
+
+@app.route('/api/progress', methods=['GET'])
+def api_progress():
+    """返回当前寻路进度"""
+    global search_progress
+    return jsonify(search_progress)
+
 
 @app.route('/api/search_stations', methods=['GET'])
 def api_search_stations():

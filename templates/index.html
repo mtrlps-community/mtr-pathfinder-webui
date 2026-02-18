@@ -154,9 +154,20 @@
             <h2 class="text-2xl font-bold mb-6">路径结果</h2>
             
             <!-- 加载状态 -->
-            <div id="loading" class="hidden text-center py-12">
-                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                <p class="mt-4 text-gray-600">正在计算路径...</p>
+            <div id="loading" class="hidden py-12">
+                <div class="max-w-md mx-auto">
+                    <h3 class="text-lg font-semibold mb-4 text-center">正在计算路径</h3>
+                    <div class="mb-4">
+                        <div class="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                            <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between text-sm text-gray-600">
+                            <span id="progress-stage">准备中...</span>
+                            <span id="progress-percentage">0%</span>
+                        </div>
+                    </div>
+                    <div id="progress-message" class="text-center text-gray-500 text-sm"></div>
+                </div>
             </div>
             
             <!-- 错误信息 -->
@@ -579,6 +590,57 @@
     const result = document.getElementById('result');
     const noResult = document.getElementById('no-result');
     
+    // 进度条相关元素
+    const progressBar = document.getElementById('progress-bar');
+    const progressStage = document.getElementById('progress-stage');
+    const progressPercentage = document.getElementById('progress-percentage');
+    const progressMessage = document.getElementById('progress-message');
+    
+    // 轮询相关变量
+    let progressInterval = null;
+    let requestId = null;
+    
+    // 更新进度条
+    function updateProgress(progress) {
+        progressBar.style.width = `${progress.percentage}%`;
+        progressStage.textContent = progress.stage;
+        progressPercentage.textContent = `${progress.percentage}%`;
+        if (progress.message) {
+            progressMessage.textContent = progress.message;
+        }
+    }
+    
+    // 开始轮询进度
+    function startProgressPolling() {
+        // 清除之前的轮询
+        if (progressInterval) {
+            clearInterval(progressInterval);
+        }
+        
+        // 初始化进度
+        updateProgress({
+            percentage: 0,
+            stage: '准备中...',
+            message: '正在初始化寻路参数...'
+        });
+        
+        // 开始轮询
+        progressInterval = setInterval(async () => {
+            try {
+                const response = await fetch('/api/progress');
+                const progress = await response.json();
+                updateProgress(progress);
+                
+                // 如果进度达到100%，停止轮询
+                if (progress.percentage >= 100) {
+                    clearInterval(progressInterval);
+                }
+            } catch (err) {
+                console.error('获取进度失败:', err);
+            }
+        }, 500); // 每500毫秒查询一次进度
+    }
+    
     routeForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -587,6 +649,9 @@
         error.classList.add('hidden');
         result.classList.add('hidden');
         noResult.classList.add('hidden');
+        
+        // 开始轮询进度
+        startProgressPolling();
         
         // 收集表单数据
         const formData = new FormData(routeForm);
@@ -618,6 +683,11 @@
             
             const resultData = await response.json();
             
+            // 停止轮询
+            if (progressInterval) {
+                clearInterval(progressInterval);
+            }
+            
             if (response.ok) {
                 if (resultData.result) {
                     // 显示结果，传递寻路模式
@@ -632,6 +702,11 @@
                 error.classList.remove('hidden');
             }
         } catch (err) {
+            // 停止轮询
+            if (progressInterval) {
+                clearInterval(progressInterval);
+            }
+            
             // 显示错误
             error.textContent = '网络错误，请稍后重试';
             error.classList.remove('hidden');
