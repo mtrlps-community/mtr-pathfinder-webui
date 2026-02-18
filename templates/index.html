@@ -423,6 +423,19 @@
         // 将generateShortcode函数暴露到全局，以便在setupStationSearch函数中调用
         window.generateShortcode = generateShortcode;
         
+        // 更新简码函数
+        function updateShortcode() {
+            const shortcode = generateShortcode();
+            shortcodeInput.value = shortcode;
+            // 调整简码输入框高度
+            if (window.autoResizeTextarea) {
+                window.autoResizeTextarea(shortcodeInput);
+            }
+        }
+        
+        // 将updateShortcode函数暴露到全局
+        window.updateShortcode = updateShortcode;
+        
         // 简码输入框变化时，填充到表单
         shortcodeInput.addEventListener('input', function() {
             parseShortcode(this.value);
@@ -826,19 +839,87 @@
             // 检查是否为步行路线
             const isWalk = trainType === 'walk' || processedRouteName.toLowerCase().includes('walk') || processedRouteName.includes('步行');
             
+            // 清空并重新设置routeTag样式
+            routeTag.innerHTML = '';
+            routeTag.style.display = 'flex';
+            routeTag.style.alignItems = 'center';
+            routeTag.style.justifyContent = 'space-between';
+            
+            // 路线信息左侧内容
+            const routeLeftContent = document.createElement('div');
+            routeLeftContent.style.display = 'flex';
+            routeLeftContent.style.alignItems = 'center';
+            
             // 步行路线不显示括号内的交通类型
             if (isWalk) {
-                routeTag.innerHTML = `
+                routeLeftContent.innerHTML = `
                     ${transportIcon}
                     <span class="route-name">${processedRouteName}</span>
                 `;
             } else {
-                routeTag.innerHTML = `
+                routeLeftContent.innerHTML = `
                     ${transportIcon}
                     <span class="route-name">${processedRouteName}</span>
                     <span style="margin-left: 8px; opacity: 0.8;">(${transportName})</span>
                 `;
             }
+            
+            // 添加叉按钮
+            const routeCloseBtn = document.createElement('button');
+            routeCloseBtn.className = 'route-close-btn';
+            routeCloseBtn.innerHTML = '&times;';
+            routeCloseBtn.style.cssText = `
+                background: none;
+                border: none;
+                width: auto;
+                height: auto;
+                cursor: pointer;
+                font-size: 1rem;
+                line-height: 1;
+                padding: 0.8px;
+                opacity: 0.7;
+                transition: color 0.2s;
+                margin-left: 8px;
+            `;
+            
+            // 确保按钮文字颜色与线路标签一致
+            routeCloseBtn.style.color = textColor;
+            
+            // 悬停效果
+            routeCloseBtn.addEventListener('mouseenter', function() {
+                this.style.opacity = 1;
+                this.style.color = '#ef4444';
+            });
+            routeCloseBtn.addEventListener('mouseleave', function() {
+                this.style.opacity = 0.7;
+                this.style.color = textColor;
+            });
+            
+            // 点击事件：添加到禁路线
+            routeCloseBtn.addEventListener('click', function() {
+                const ignoredLinesInput = document.getElementById('ignored-lines');
+                const currentValue = ignoredLinesInput.value;
+                const routeValue = processedRouteName;
+                
+                // 检查是否已存在
+                const lines = currentValue.split(/[,;；]/).map(line => line.trim()).filter(Boolean);
+                if (!lines.includes(routeValue)) {
+                    lines.push(routeValue);
+                    ignoredLinesInput.value = lines.join(';');
+                    // 触发自动调整高度
+                    if (window.autoResizeTextarea) {
+                        window.autoResizeTextarea(ignoredLinesInput);
+                    }
+                    // 更新简码
+                    if (typeof updateShortcode === 'function') {
+                        updateShortcode();
+                    }
+                }
+            });
+            
+            // 直接添加内容到routeTag
+            routeTag.appendChild(routeLeftContent);
+            routeTag.appendChild(routeCloseBtn);
             routeInfoDiv.appendChild(routeTag);
             
             // 只有非步行路线才显示方向指示器
@@ -1041,11 +1122,72 @@
             
             const stationDiv = document.createElement('div');
             stationDiv.className = 'station';
+            stationDiv.style.display = 'flex';
+            stationDiv.style.alignItems = 'center';
+            stationDiv.style.justifyContent = 'space-between';
+            stationDiv.style.textAlign = 'left';
             
             // 替换车站名称中的所有竖杠为空格
             const formattedStationName = currentStation.replace(/\|/g, ' ');
-            stationDiv.textContent = formattedStationName;
             
+            // 车站名称文本
+            const stationNameSpan = document.createElement('span');
+            stationNameSpan.textContent = formattedStationName;
+            stationNameSpan.style.flex = '1';
+            stationNameSpan.style.textAlign = 'left';
+            stationDiv.appendChild(stationNameSpan);
+            
+            // 添加叉按钮
+            const stationCloseBtn = document.createElement('button');
+            stationCloseBtn.className = 'station-close-btn';
+            stationCloseBtn.innerHTML = '&times;';
+            stationCloseBtn.style.cssText = `
+                background: none;
+                border: none;
+                width: auto;
+                height: auto;
+                cursor: pointer;
+                font-size: 1rem;
+                line-height: 1;
+                opacity: 0.7;
+                transition: color 0.2s;
+                color: #6b7280;
+                margin-left: 8px;
+            `;
+            
+            // 悬停效果
+            stationCloseBtn.addEventListener('mouseenter', function() {
+                this.style.opacity = 1;
+                this.style.color = '#ef4444';
+            });
+            stationCloseBtn.addEventListener('mouseleave', function() {
+                this.style.opacity = 0.7;
+                this.style.color = '#6b7280';
+            });
+            
+            // 点击事件：添加到禁车站
+            stationCloseBtn.addEventListener('click', function() {
+                const avoidStationsInput = document.getElementById('avoid-stations');
+                const currentValue = avoidStationsInput.value;
+                const stationValue = formattedStationName;
+                
+                // 检查是否已存在
+                const stations = currentValue.split(/[,;；]/).map(s => s.trim()).filter(Boolean);
+                if (!stations.includes(stationValue)) {
+                    stations.push(stationValue);
+                    avoidStationsInput.value = stations.join(';');
+                    // 触发自动调整高度
+                    if (window.autoResizeTextarea) {
+                        window.autoResizeTextarea(avoidStationsInput);
+                    }
+                    // 更新简码
+                    if (typeof updateShortcode === 'function') {
+                        updateShortcode();
+                    }
+                }
+            });
+            
+            stationDiv.appendChild(stationCloseBtn);
             stationStep.appendChild(stationDiv);
             detailsContainer.appendChild(stationStep);
             
@@ -1079,8 +1221,8 @@
                     // 显示等车时间（如果不是第一条路线）
                     if (i > 0 && i < stationNames.length - 1 && lineWaitingTime > 0) {
                         const waitingTimeDiv = document.createElement('div');
-                        waitingTimeDiv.className = 'time-stamp route-waiting-time';
-                        waitingTimeDiv.textContent = `等车时间：${formatTime(lineWaitingTime)}`;
+                        waitingTimeDiv.className = 'time-detail';
+                        waitingTimeDiv.innerHTML = `<span>⏳ 等车时间</span><span class="time-value">${formatTime(lineWaitingTime)}</span>`;
                         routeStep.appendChild(waitingTimeDiv);
                     }
                     
@@ -1118,6 +1260,11 @@
                 const textColor = getContrastTextColor(defaultColor);
                 routeTag.style.color = textColor;
                 
+                // 设置routeTag为flex容器
+                routeTag.style.display = 'flex';
+                routeTag.style.alignItems = 'center';
+                routeTag.style.justifyContent = 'space-between';
+                
                 // 处理路线信息，只保留中文和英文，去除方向和分隔符
                 let processedRouteInfo = routeInfo;
                 if (processedRouteInfo.includes('||')) {
@@ -1130,19 +1277,80 @@
                 const icon = isWalk ? '🚶' : '🚂';
                 const transportName = isWalk ? '步行' : '列车';
                 
+                // 路线信息左侧内容
+                const routeLeftContent = document.createElement('div');
+                routeLeftContent.style.display = 'flex';
+                routeLeftContent.style.alignItems = 'center';
+                
                 // 步行路线不显示括号内的交通类型
                 if (isWalk) {
-                    routeTag.innerHTML = `
+                    routeLeftContent.innerHTML = `
                         ${icon}
                         <span class="route-name">${processedRouteInfo}</span>
                     `;
                 } else {
-                    routeTag.innerHTML = `
+                    routeLeftContent.innerHTML = `
                         ${icon}
                         <span class="route-name">${processedRouteInfo}</span>
                         <span style="margin-left: 8px; opacity: 0.8;">(${transportName})</span>
                     `;
                 }
+                
+                // 添加叉按钮
+            const routeCloseBtn = document.createElement('button');
+            routeCloseBtn.className = 'route-close-btn';
+            routeCloseBtn.innerHTML = '&times;';
+            routeCloseBtn.style.cssText = `
+                background: none;
+                border: none;
+                width: auto;
+                height: auto;
+                cursor: pointer;
+                font-size: 1rem;
+                line-height: 1;
+                opacity: 0.7;
+                transition: color 0.2s;
+                margin-left: 8px;
+            `;
+                
+                // 确保按钮文字颜色与线路标签一致
+                routeCloseBtn.style.color = textColor;
+                
+                // 悬停效果
+                routeCloseBtn.addEventListener('mouseenter', function() {
+                    this.style.opacity = 1;
+                    this.style.color = '#ef4444';
+                });
+                routeCloseBtn.addEventListener('mouseleave', function() {
+                    this.style.opacity = 0.7;
+                    this.style.color = textColor;
+                });
+                
+                // 点击事件：添加到禁路线
+                routeCloseBtn.addEventListener('click', function() {
+                    const ignoredLinesInput = document.getElementById('ignored-lines');
+                    const currentValue = ignoredLinesInput.value;
+                    const routeValue = processedRouteInfo;
+                    
+                    // 检查是否已存在
+                    const lines = currentValue.split(/[,;；]/).map(line => line.trim()).filter(Boolean);
+                    if (!lines.includes(routeValue)) {
+                        lines.push(routeValue);
+                        ignoredLinesInput.value = lines.join(';');
+                        // 触发自动调整高度
+                        if (window.autoResizeTextarea) {
+                            window.autoResizeTextarea(ignoredLinesInput);
+                        }
+                        // 更新简码
+                        if (typeof updateShortcode === 'function') {
+                            updateShortcode();
+                        }
+                    }
+                });
+                
+                // 直接添加内容到routeTag
+                routeTag.appendChild(routeLeftContent);
+                routeTag.appendChild(routeCloseBtn);
                 routeInfoDiv.appendChild(routeTag);
                 
                 // 只有非步行路线才显示方向指示器

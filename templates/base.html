@@ -282,31 +282,50 @@
             margin-bottom: 12px;
         }
         
-        .route-info div {
-            margin-bottom: 8px;
+        .route-info > :not(:last-child) {
+            margin-bottom: 6px;
         }
         
-        .route-info div:last-child {
-            margin-bottom: 0;
+        .route-tag,
+        .direction-indicator,
+        .time-detail {
+            display: flex;
+            align-items: center;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            width: 100%;
+        }
+        
+        .station {
+            display: flex;
+            align-items: center;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 1.25rem;
+            line-height: 2;
+            width: 100%;
         }
         
         .route-tag {
-            display: flex;
-            align-items: center;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 0.85rem;
             font-weight: 600;
             color: white;
-            width: 100%;
         }
         
         .direction-indicator {
-            width: 100%;
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            margin-top: 2px;
+            color: #1e40af;
         }
         
         .time-detail {
-            width: 100%;
+            background: #f3f4f6;
+            margin-top: 2px;
+        }
+        
+        .station {
+            background: transparent;
         }
         
         .route-name {
@@ -377,7 +396,7 @@
         .other-route-tag {
             display: inline-block;
             padding: 2px 6px;
-            border-radius: 3px;
+            border-radius: 4px;
             font-size: 0.75rem;
             font-weight: 500;
             margin-right: 4px;
@@ -397,41 +416,28 @@
         
         /* 时间戳样式 */
         .time-stamp {
-            font-size: 0.85rem;
-            color: #6c757d;
-            padding: 8px 16px;
-            margin: 8px 0;
+            display: flex;
+            align-items: center;
+            padding: 2px 6px;
             border-radius: 4px;
-            background: #f8f9fa;
-            text-align: left;
-            font-weight: 500;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            width: 100%;
+            margin: 8px 0;
+            background: #f3f4f6;
         }
         
         .departure-time, .arrival-time {
             background: linear-gradient(135deg, #e3f2fd, #bbdefb);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: #4a90e2;
             font-weight: 600;
         }
         
-        .route-departure-time, .route-arrival-time, .route-waiting-time {
-            font-size: 0.8rem;
+        .route-departure-time, .route-arrival-time {
+            font-size: 0.85rem;
             color: #6c757d;
-            background: #f0f0f0;
-        }
-        
-        .route-waiting-time {
-            margin-bottom: 4px;
-            background: linear-gradient(135deg, #fff3cd, #ffeeba);
-            color: #856404;
-        }
-        
-        .route-departure-time {
-            margin-bottom: 4px;
-        }
-        
-        .route-arrival-time {
-            margin-top: 4px;
+            background: #f3f4f6;
         }
         
         .version-info {
