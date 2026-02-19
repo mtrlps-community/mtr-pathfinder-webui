@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTR Pathfinder WebUI</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        /* 自定义样式 */
+        .nav-item {
+            padding: 0.5rem 1rem;
+            color: #4b5563;
+            transition: color 0.2s, background-color 0.2s;
+            border-radius: 0.375rem;
+        }
+        .nav-item:hover {
+            background-color: #dbeafe;
+        }
+        .nav-item.active {
+            background-color: #3b82f6;
+            color: #ffffff;
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            resize: none;
+            min-height: 2.5rem;
+            height: 2.5rem;
+            line-height: 1.5;
+            font-size: 1rem;
+            overflow: hidden;
+        }
+        .form-input:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+        .form-checkbox {
+            width: 1rem;
+            height: 1rem;
+            color: #3b82f6;
+            border: 1px solid #d1d5db;
+            border-radius: 0.25rem;
+        }
+        .btn-primary {
+            padding: 0.5rem 1rem;
+            background-color: #3b82f6;
+            color: #ffffff;
+            border-radius: 0.375rem;
+            transition: background-color 0.2s;
+        }
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+        .btn-secondary {
+            padding: 0.5rem 1rem;
+            background-color: #e5e7eb;
+            color: #4b5563;
+            border-radius: 0.375rem;
+            transition: background-color 0.2s;
+        }
+        .btn-secondary:hover {
+            background-color: #d1d5db;
+        }
+        .btn-green {
+            padding: 0.5rem 1rem;
+            background-color: #10b981;
+            color: #ffffff;
+            border-radius: 0.375rem;
+            transition: background-color 0.2s;
+        }
+        .btn-green:hover {
+            background-color: #059669;
+        }
+        .card {
+            background-color: #ffffff;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            padding: 1.5rem;
+        }
+        /* 算法选项卡样式 */
+        .algorithm-tabs {
+            width: 100%;
+        }
+        
+        .algorithm-tabs .flex {
+            background-color: #e5e7eb;
+            border-radius: 0.375rem;
+            padding: 0.25rem;
+            gap: 0.25rem;
+        }
+        
+        .algorithm-tab {
+            flex: 1;
+            padding: 0.5rem 1rem;
+            text-align: center;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+        
+        .algorithm-tab:hover {
+            background-color: #d1d5db;
+        }
+        
+        .algorithm-tab.active {
+            background-color: #3b82f6;
+            color: white;
+            font-weight: 500;
+        }
+        
+        /* 隐藏滚动条 */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .result-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .station-node {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            background-color: #ffffff;
+            border: 2px solid #9ca3af;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .route-line {
+            height: 0.5rem;
+            flex: 1;
+            margin: 0 0.5rem;
+        }
+        /* 时间信息 */
+        .time-info {
+            padding: 0 0 12px 0;
+            margin-bottom: 12px;
+        }
+        
+        .time-info h3 {
+            margin-bottom: 12px;
+            color: #374151;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        
+        .time-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px;
+        }
+        
+        .time-item {
+            display: flex;
+            align-items: center;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .time-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .time-item.total-time {
+            border-left: 3px solid #3b82f6;
+        }
+        
+        .time-item.traveling-time {
+            border-left: 3px solid #10b981;
+        }
+        
+        .time-item.waiting-time {
+            border-left: 3px solid #f59e0b;
+        }
+        
+        .time-icon {
+            font-size: 1.2rem;
+            margin-right: 8px;
+        }
+        
+        .time-content {
+            flex: 1;
+        }
+        
+        .time-content strong {
+            display: block;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 1px;
+        }
+        
+        /* 数据版本特殊样式 */
+        .time-item.data-version .time-content strong {
+            font-size: 0.75rem;
+        }
+        
+        /* 调整时间网格，确保数据版本项正确排列 */
+        .time-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+        }
+        
+        /* 让数据版本项在一行中显示两个 */
+        @media (min-width: 640px) {
+            .time-grid {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+            
+            /* 理论模式下：总用时和计算用时各占2列，占满第一行 */
+            .time-grid.theory-mode .time-item.total-time,
+            .time-grid.theory-mode .time-item.calc-time {
+                grid-column: span 2;
+            }
+            
+            /* 非理论模式下：前四个非数据版本项各占一列 */
+            .time-grid:not(.theory-mode) .time-item.total-time,
+            .time-grid:not(.theory-mode) .time-item.traveling-time,
+            .time-grid:not(.theory-mode) .time-item.waiting-time,
+            .time-grid:not(.theory-mode) .time-item.calc-time {
+                grid-column: span 1;
+            }
+            
+            /* 数据版本项两个一组，占满一行 */
+            .time-item.data-version {
+                grid-column: span 2;
+            }
+        }
+        
+        .time-item.total-time .time-content strong {
+            color: #3b82f6;
+        }
+        
+        .time-item.traveling-time .time-content strong {
+            color: #10b981;
+        }
+        
+        .time-item.waiting-time .time-content strong {
+            color: #f59e0b;
+        }
+        
+        .time-content span {
+            color: #6c757d;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        /* 路线步骤 */
+        .route-step {
+            margin-bottom: 8px;
+        }
+        
+
+        .route-step.alternative {
+            margin-left: 30px;
+        }
+        
+        .station {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background-color: #ffffff;
+        }
+        
+        .station::before {
+            content: "";
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid;
+        }
+        
+        /* 起点站 - 绿色空心圆圈 */
+        .start-station .station::before {
+            border-color: #7ed321;
+            background-color: transparent;
+        }
+        
+        /* 终点站 - 红色空心圆圈 */
+        .end-station .station::before {
+            border-color: #d0021b;
+            background-color: transparent;
+        }
+        
+        /* 中间站 - 黑色空心圆圈 */
+        .route-step:not(.start-station):not(.end-station) .station::before {
+            border-color: #333;
+            background-color: transparent;
+        }
+        
+        .route-info {
+            margin-bottom: 12px;
+        }
+        
+        .route-info > :not(:last-child) {
+            margin-bottom: 6px;
+        }
+        
+        .route-tag,
+        .direction-indicator,
+        .time-detail {
+            display: flex;
+            align-items: center;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            width: 100%;
+        }
+        
+        .station {
+            display: flex;
+            align-items: center;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 1.25rem;
+            line-height: 2;
+            width: 100%;
+        }
+        
+        .route-tag {
+            font-weight: 600;
+            color: white;
+        }
+        
+        .direction-indicator {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            margin-top: 2px;
+            color: #1e40af;
+        }
+        
+        .time-detail {
+            background: #f3f4f6;
+            margin-top: 2px;
+        }
+        
+        .station {
+            background: transparent;
+        }
+        
+        .route-name {
+            margin-left: 4px;
+        }
+        
+        .divider {
+            display: inline;
+            margin-right: 8px;
+            color: #6c757d;
+            font-style: italic;
+            font-weight: 600;
+        }
+        
+        .direction-indicator {
+            display: flex;
+            align-items: center;
+            padding: 2px 6px;
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            border-radius: 4px;
+            margin-top: 2px;
+            font-size: 0.85rem;
+            color: #1e40af;
+        }
+        
+        .direction-indicator::before {
+            content: "→";
+            margin-right: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .time-detail {
+            display: flex;
+            align-items: center;
+            padding: 2px 6px;
+            background: #f3f4f6;
+            border-radius: 4px;
+            margin-top: 2px;
+            font-size: 0.85rem;
+        }
+        
+        .time-value {
+            font-weight: 600;
+            color: #4a90e2;
+            margin-left: 4px;
+        }
+        
+        /* 其他路线样式 */
+        .other-routes {
+            margin-top: 8px;
+            display: flex;
+            align-items: flex-start;
+        }
+        
+        .other-routes-label {
+            margin-right: 6px;
+            margin-top: 2px;
+            font-size: 0.8rem;
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .other-routes-list {
+            display: inline-block;
+            vertical-align: top;
+        }
+        
+        .other-route-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-right: 4px;
+            margin-bottom: 4px;
+            cursor: pointer;
+            transition: filter 0.2s ease;
+            vertical-align: top;
+        }
+        
+        /* 移动端菜单样式 */
+        .mobile-menu-button {
+            display: none;
+        }
+        
+        /* 导航链接样式 */
+        .nav-links {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            /* 显示汉堡菜单按钮 */
+            .mobile-menu-button {
+                display: block;
+            }
+            
+            /* 默认隐藏导航链接 */
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background-color: white;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                flex-direction: column;
+                padding: 1rem;
+                gap: 0.5rem;
+                z-index: 10;
+            }
+            
+            /* 显示导航链接 */
+            .nav-links.show {
+                display: flex;
+            }
+            
+            /* 调整导航项样式 */
+            .nav-item {
+                display: block;
+                padding: 0.5rem 1rem;
+            }
+        }
+        
+        .other-route-tag:hover {
+            filter: brightness(0.85);
+        }
+        
+        .other-route-name {
+            margin-left: 3px;
+        }
+        
+        /* 时间戳样式 */
+        .time-stamp {
+            display: flex;
+            align-items: center;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            width: 100%;
+            margin: 8px 0;
+            background: #f3f4f6;
+        }
+        
+        .departure-time, .arrival-time {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            font-size: 0.85rem;
+            color: #4a90e2;
+            font-weight: 600;
+        }
+        
+        .route-departure-time, .route-arrival-time {
+            font-size: 0.85rem;
+            color: #6c757d;
+            background: #f3f4f6;
+        }
+        
+        .version-info {
+            margin-top: 25px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #6c757d;
+            text-align: center;
+        }
+        
+        .calc-time {
+            font-weight: 600;
+            color: #4a90e2;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- 导航栏 -->
+    <nav class="bg-white shadow-md" style="position: relative;">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-subway text-blue-500 text-2xl"></i>
+                <h1 class="text-xl font-bold text-gray-800">MTR Pathfinder</h1>
+            </div>
+            
+            <!-- 汉堡菜单按钮 -->
+            <button class="mobile-menu-button md:hidden text-gray-600 hover:text-gray-800 focus:outline-none">
+                <i class="fa fa-bars text-xl"></i>
+            </button>
+            
+            <!-- 导航链接 -->
+            <div class="nav-links">
+                <a href="/" class="nav-item {{ 'active' if request.path == '/' else '' }}">
+                    <i class="fa fa-search mr-1"></i> 寻路
+                </a>
+                <a href="/stations" class="nav-item {{ 'active' if request.path == '/stations' else '' }}">
+                    <i class="fa fa-map-marker mr-1"></i> 车站列表
+                </a>
+                <a href="/routes" class="nav-item {{ 'active' if request.path == '/routes' else '' }}">
+                    <i class="fa fa-train mr-1"></i> 线路列表
+                </a>
+                <a href="/admin" class="nav-item {{ 'active' if request.path == '/admin' else '' }}">
+                    <i class="fa fa-cog mr-1"></i> 控制台
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 py-6">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-white shadow-inner mt-8 py-6">
+        <div class="container mx-auto px-4 text-center text-gray-600">
+            <p>MTR Pathfinder WebUI &copy; {{ 2026 }}</p>
+        </div>
+    </footer>
+
+    {% block scripts %}
+    {% endblock %}
+<script>
+        // 自适应调整textarea高度 - 简化版本
+        window.autoResizeTextarea = function(textarea) {
+            // 确保textarea元素存在
+            if (!textarea || !textarea.classList.contains('form-input')) return;
+            
+            // 获取计算样式
+            const computedStyle = getComputedStyle(textarea);
+            const lineHeight = parseInt(computedStyle.lineHeight);
+            const paddingTop = parseInt(computedStyle.paddingTop);
+            const paddingBottom = parseInt(computedStyle.paddingBottom);
+            
+            // 计算一行的实际高度（包括内边距）
+            const singleLineHeight = lineHeight + paddingTop + paddingBottom;
+            
+            // 重置高度以获得准确的scrollHeight
+            textarea.style.height = `${singleLineHeight}px`;
+            
+            // 计算新高度，确保至少为一行
+            const newHeight = Math.max(textarea.scrollHeight, singleLineHeight);
+            
+            // 只在高度变化时更新，避免不必要的重绘
+            if (textarea.style.height !== `${newHeight}px`) {
+                textarea.style.height = `${newHeight}px`;
+            }
+        }
+        
+        // 批量处理所有textarea
+        function processAllTextareas() {
+            const textareas = document.querySelectorAll('.form-input');
+            textareas.forEach(textarea => {
+                autoResizeTextarea(textarea);
+            });
+        }
+        
+        // 页面加载完成后初始化所有textarea
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始加载时调整高度
+            processAllTextareas();
+            
+            // 只监听必要的事件，避免性能问题
+            document.addEventListener('input', function(e) {
+                if (e.target && e.target.classList.contains('form-input')) {
+                    autoResizeTextarea(e.target);
+                }
+            });
+            
+            // 监听paste和cut事件
+            document.addEventListener('paste', function(e) {
+                if (e.target && e.target.classList.contains('form-input')) {
+                    setTimeout(() => autoResizeTextarea(e.target), 0);
+                }
+            });
+            
+            document.addEventListener('cut', function(e) {
+                if (e.target && e.target.classList.contains('form-input')) {
+                    setTimeout(() => autoResizeTextarea(e.target), 0);
+                }
+            });
+        });
+        
+        // 当页面完全加载（包括图片等资源）后再次调整高度
+        window.addEventListener('load', function() {
+            processAllTextareas();
+        });
+        
+        // 移动端菜单功能
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuButton = document.querySelector('.mobile-menu-button');
+            const navLinks = document.querySelector('.nav-links');
+            
+            if (mobileMenuButton && navLinks) {
+                mobileMenuButton.addEventListener('click', function() {
+                    navLinks.classList.toggle('show');
+                });
+            }
+        });
+    </script>
+    </body>
+</html>
