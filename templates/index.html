@@ -151,7 +151,23 @@
     <!-- 右侧：结果展示 -->
     <div class="lg:col-span-2">
         <div class="card">
-            <h2 class="text-2xl font-bold mb-6">路径结果</h2>
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">路径结果</h2>
+                <div class="flex gap-3">
+                    <button id="view-image-btn" class="btn-secondary flex items-center gap-2 hidden">
+                        <i class="fa fa-eye"></i>
+                        查看结果图片
+                    </button>
+                    <button id="download-image-btn" class="btn-primary flex items-center gap-2 hidden">
+                        <i class="fa fa-download"></i>
+                        下载结果图片
+                    </button>
+                    <div id="image-loading" class="text-blue-500 flex items-center gap-2">
+                        <i class="fa fa-spinner fa-spin"></i>
+                        结果图片正在生成
+                    </div>
+                </div>
+            </div>
             
             <!-- 加载状态 -->
             <div id="loading" class="hidden py-12">
@@ -180,13 +196,7 @@
                     <!-- 路径步骤将动态生成 -->
                 </div>
                 
-                <!-- 结果图像 -->
-                <div class="mt-6">
-                    <h3 class="text-lg font-semibold mb-3">路径图像</h3>
-                    <div id="route-image" class="border border-gray-300 rounded-lg p-4 bg-white">
-                        <p class="text-gray-500 text-center">路径图像将显示在这里</p>
-                    </div>
-                </div>
+
             </div>
             
             <!-- 无结果状态 -->
@@ -194,6 +204,16 @@
                 <i class="fa fa-route text-6xl text-gray-300 mb-4"></i>
                 <h3 class="text-xl font-semibold text-gray-600 mb-2">未找到路径</h3>
                 <p class="text-gray-500">请检查输入参数或尝试其他算法</p>
+            </div>
+            
+            <!-- 图片查看模态框 -->
+            <div id="image-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+                <div class="relative max-w-4xl max-h-[90vh] overflow-auto">
+                    <button id="close-image-modal" class="absolute top-4 right-4 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors">
+                        <i class="fa fa-times"></i>
+                    </button>
+                    <img id="result-image" src="" alt="路径结果图片" class="max-w-full max-h-[85vh] object-contain">
+                </div>
             </div>
         </div>
     </div>
@@ -644,6 +664,10 @@
     routeForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
+        // 隐藏图片按钮
+        document.getElementById('view-image-btn').classList.add('hidden');
+        document.getElementById('download-image-btn').classList.add('hidden');
+        
         // 显示加载状态
         loading.classList.remove('hidden');
         error.classList.add('hidden');
@@ -739,6 +763,9 @@
         
         // 确保routeDetails是数组，避免TypeError
         const routeDetails = Array.isArray(routeResult[2]) ? routeResult[2] : [];
+        
+        // 生成结果图片
+        generateResultImage(stationNames, routeDetails, algorithm);
         
         // 清空现有内容
         const detailsContainer = document.getElementById('route-details');
@@ -1609,6 +1636,108 @@
         };
         return nameMap[trainType] || '列车';
     }
+    
+    // 生成结果图片
+    async function generateResultImage(stationNames, routeDetails, algorithm) {
+        const imageLoading = document.getElementById('image-loading');
+        const viewImageBtn = document.getElementById('view-image-btn');
+        const downloadImageBtn = document.getElementById('download-image-btn');
+        
+        try {
+            // 显示加载提示
+            imageLoading.classList.remove('hidden');
+            viewImageBtn.classList.add('hidden');
+            downloadImageBtn.classList.add('hidden');
+            
+            // 获取当前表单数据
+            const formData = new FormData(document.getElementById('route-form'));
+            const data = {
+                start: formData.get('start'),
+                end: formData.get('end'),
+                ignored_lines: formData.get('ignored_lines').split(/[,;；]/).map(s => s.trim()).filter(Boolean),
+                avoid_stations: formData.get('avoid_stations').split(/[,;；]/).map(s => s.trim()).filter(Boolean),
+                disable_high_speed: formData.get('disable_high_speed') === 'on',
+                disable_boat: formData.get('disable_boat') === 'on',
+                enable_wild: formData.get('enable_wild') === 'on',
+                only_lrt: formData.get('only_lrt') === 'on',
+                algorithm: algorithm
+            };
+            
+            // 调用API生成图片
+            const response = await fetch('/api/generate_image', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // 隐藏加载提示，显示图片按钮
+                imageLoading.classList.add('hidden');
+                viewImageBtn.classList.remove('hidden');
+                downloadImageBtn.classList.remove('hidden');
+            } else {
+                // 隐藏加载提示
+                imageLoading.classList.add('hidden');
+            }
+        } catch (error) {
+            console.error('生成图片失败:', error);
+            // 生成失败时隐藏加载提示，确保按钮仍然隐藏
+            imageLoading.classList.add('hidden');
+            viewImageBtn.classList.add('hidden');
+            downloadImageBtn.classList.add('hidden');
+        }
+    }
+    
+    // 图片查看和下载功能
+    document.addEventListener('DOMContentLoaded', function() {
+        const viewImageBtn = document.getElementById('view-image-btn');
+        const downloadImageBtn = document.getElementById('download-image-btn');
+        const imageLoading = document.getElementById('image-loading');
+        const imageModal = document.getElementById('image-modal');
+        const closeImageModal = document.getElementById('close-image-modal');
+        const resultImage = document.getElementById('result-image');
+        
+        // 查看图片按钮点击事件
+        viewImageBtn.addEventListener('click', async function() {
+            // 设置图片源
+            resultImage.src = '/api/get_image?' + new Date().getTime(); // 添加时间戳防止缓存
+            // 显示模态框
+            imageModal.classList.remove('hidden');
+        });
+        
+        // 下载图片按钮点击事件
+        downloadImageBtn.addEventListener('click', function() {
+            // 创建下载链接
+            const link = document.createElement('a');
+            link.href = '/api/get_image';
+            link.download = `mtr-path-${new Date().getTime()}.png`;
+            link.click();
+        });
+        
+        // 关闭图片模态框
+        closeImageModal.addEventListener('click', function() {
+            imageModal.classList.add('hidden');
+            // 清空图片源以释放内存
+            resultImage.src = '';
+        });
+        
+        // 点击模态框背景关闭
+        imageModal.addEventListener('click', function(e) {
+            if (e.target === imageModal) {
+                imageModal.classList.add('hidden');
+                resultImage.src = '';
+            }
+        });
+        
+        // 初始状态：显示加载提示，隐藏图片按钮
+        imageLoading.classList.remove('hidden');
+        viewImageBtn.classList.add('hidden');
+        downloadImageBtn.classList.add('hidden');
+    });
     
     // 根据背景色自动计算文字颜色
     function getContrastTextColor(hexColor) {
