@@ -76,11 +76,14 @@
     let intervalData = {};
     
     try {
-        // 直接使用模板变量，避免JSON解析错误
-        routesData = {{ routes|tojson|safe }};
-        intervalData = {{ interval_data|tojson|safe }};
+        // 使用JSON.parse解析JSON字符串，避免语法错误
+        routesData = JSON.parse('{{ routes|tojson|safe }}');
+        intervalData = JSON.parse('{{ interval_data|tojson|safe }}');
     } catch (error) {
         console.error('Error loading data:', error);
+        // 如果解析失败，使用默认空值
+        routesData = [];
+        intervalData = {};
     }
     
     // 添加调试日志

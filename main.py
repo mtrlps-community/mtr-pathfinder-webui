@@ -98,8 +98,9 @@ def index():
 
 @app.route('/stations')
 def stations():
-    # 读取车站数据
+    # 读取车站数据和线路数据
     stations_data = []
+    routes_data = []
     # 优先使用v3版本的数据文件，因为它包含更多信息
     data_file_path = config['LOCAL_FILE_PATH_V3']
     if os.path.exists(data_file_path):
@@ -108,9 +109,29 @@ def stations():
             # 统一处理，无论MTR_VER版本，都使用列表格式
             if isinstance(data, list) and len(data) > 0:
                 stations_data = list(data[0]['stations'].values())
+                routes_data = data[0]['routes']
             elif isinstance(data, dict):
                 # 如果是字典格式，将其转换为列表格式
                 stations_data = list(data['stations'].values())
+                routes_data = data['routes']
+    
+    # 创建车站ID到车站对象的映射
+    station_id_map = {}
+    for station in stations_data:
+        if isinstance(station, dict) and 'id' in station:
+            station_id_map[station['id']] = station
+            # 初始化routes属性为空列表
+            station['routes'] = []
+    
+    # 计算每个车站被多少条线路经过
+    for route in routes_data:
+        if isinstance(route, dict) and 'stations' in route:
+            for station in route['stations']:
+                if isinstance(station, dict) and 'id' in station:
+                    station_id = station['id']
+                    if station_id in station_id_map:
+                        # 将线路添加到车站的routes列表中
+                        station_id_map[station_id]['routes'].append(route)
     
     # 将车站名称中的竖杠替换为空格
     for station in stations_data:
@@ -319,6 +340,16 @@ def route_detail(route_id):
                 dwell_seconds = int(dwell_time_ms / 1000)
                 processed_station['dwell_time'] = f"{dwell_seconds}秒"
                 
+                # 处理累计运行时长：转换为适当的格式：超过一小时显示为h:mm:ss，否则为mm:ss
+                total_hours = int(total_seconds // 3600)
+                total_minutes = int((total_seconds % 3600) // 60)
+                total_remaining_seconds = int(total_seconds % 60)
+                
+                if total_hours > 0:
+                    processed_station['total_time'] = f"{total_hours}:{total_minutes:02d}:{total_remaining_seconds:02d}"
+                else:
+                    processed_station['total_time'] = f"{total_minutes:02d}:{total_remaining_seconds:02d}"
+                
                 # 添加运行时间信息：durations[i]是从当前站点到下一个站点的运行时间
                 if i < len(durations):
                     # 将秒转换为适当的格式：超过一小时显示为h:mm:ss，否则为mm:ss
@@ -334,18 +365,8 @@ def route_detail(route_id):
                         processed_station['travel_time'] = f"{minutes:02d}:{remaining_seconds:02d}"
                     
                     # 计算累计运行时长（不包括当前站点的停站时间）
-                    if i > 0:
-                        total_seconds += seconds
-                
-                # 处理累计运行时长：转换为适当的格式：超过一小时显示为h:mm:ss，否则为mm:ss
-                total_hours = int(total_seconds // 3600)
-                total_minutes = int((total_seconds % 3600) // 60)
-                total_remaining_seconds = int(total_seconds % 60)
-                
-                if total_hours > 0:
-                    processed_station['total_time'] = f"{total_hours}:{total_minutes:02d}:{total_remaining_seconds:02d}"
-                else:
-                    processed_station['total_time'] = f"{total_minutes:02d}:{total_remaining_seconds:02d}"
+                    # 将当前站点到下一站的运行时间加到累计时间中
+                    total_seconds += seconds
                 
                 processed_stations.append(processed_station)
         # 更新线路的站点列表
