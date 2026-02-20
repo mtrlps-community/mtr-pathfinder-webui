@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
 <div class="card">
@@ -24,20 +24,7 @@
             </div>
         </div>
         
-        <!-- 列选择 - 只保留ID和名称 -->
-        <div class="column-selection bg-gray-50 p-3 rounded-md">
-            <div class="flex items-center space-x-4 flex-wrap">
-                <span class="text-sm font-medium text-gray-700">显示列：</span>
-                <label class="flex items-center text-sm">
-                    <input type="checkbox" id="show-id" class="form-checkbox" checked disabled>
-                    <span class="ml-1 text-gray-700">ID</span>
-                </label>
-                <label class="flex items-center text-sm">
-                    <input type="checkbox" id="show-name" class="form-checkbox" checked disabled>
-                    <span class="ml-1 text-gray-700">名称</span>
-                </label>
-            </div>
-        </div>
+
     </div>
     
     <!-- 线路表格 -->
@@ -80,16 +67,56 @@
 {% block scripts %}
 <script>
     // 线路数据
-    const routesData = JSON.parse('{{ routes|tojson|safe }}');
-    let filteredRoutes = [...routesData];
+    let routesData = [];
+    let intervalData = {};
+    
+    try {
+        // 直接使用模板变量，避免JSON解析错误
+        routesData = {{ routes|tojson|safe }};
+        intervalData = {{ interval_data|tojson|safe }};
+    } catch (error) {
+        console.error('Error loading data:', error);
+    }
+    
+    // 添加调试日志
+    console.log('Routes data length:', routesData.length);
+    console.log('Interval data keys:', Object.keys(intervalData).length);
+    
+    // 确保初始数据正确
+    let filteredRoutes = routesData && Array.isArray(routesData) ? [...routesData] : [];
     let sortField = 'name';
     let sortDirection = 'asc';
+    
+    // 简化版搜索功能 - 只搜索线路名称
+    function searchRoutes() {
+        const searchInput = document.getElementById('route-search');
+        const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        
+        if (!query) {
+            // 搜索词为空，显示所有线路
+            filteredRoutes = routesData && Array.isArray(routesData) ? [...routesData] : [];
+        } else {
+            // 搜索词不为空，过滤线路
+            filteredRoutes = routesData.filter(route => {
+                // 检查线路名称是否包含搜索词
+                const routeName = route.name ? route.name.toLowerCase() : '';
+                return routeName.includes(query);
+            });
+        }
+        
+        renderTable();
+    }
     
     // 渲染表格 - 显示所有数据
     function renderTable() {
         const tbody = document.getElementById('route-table-body');
         
-        if (filteredRoutes.length === 0) {
+        if (!tbody) {
+            console.error('Table body element not found');
+            return;
+        }
+        
+        if (!filteredRoutes || filteredRoutes.length === 0) {
             tbody.innerHTML = `
                 <tr>
                     <td colspan="2" class="py-12 text-center text-gray-500">
@@ -112,50 +139,59 @@
                 </tr>
             `).join('');
         }
-        // 应用列显示设置
-        updateColumnVisibility();
     }
     
-    // 搜索功能 - 与车站列表实现一致
-    document.getElementById('route-search').addEventListener('input', function(e) {
-        console.log('Search input:', e.target.value);
-        console.log('routesData type:', Array.isArray(routesData) ? 'array' : typeof routesData);
-        console.log('routesData length:', routesData.length);
+    // 初始化搜索功能
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('route-search');
+        if (searchInput) {
+            // 使用input事件监听搜索输入
+            searchInput.addEventListener('input', searchRoutes);
+        } else {
+            console.error('Search input element not found');
+        }
         
-        const query = e.target.value.toLowerCase();
-        filteredRoutes = routesData.filter(function(route) {
-            console.log('Processing route:', route);
-            // 确保只在route.name存在时才调用toLowerCase()
-            if (route.name) {
-                const match = route.name.toLowerCase().includes(query);
-                console.log('Route name:', route.name, 'Match:', match);
-                return match;
-            }
-            console.log('Route has no name:', route);
-            return false;
-        });
-        
-        console.log('Filtered routes:', filteredRoutes);
+        // 初始渲染
         renderTable();
     });
     
     // 排序功能
-    document.getElementById('route-sort').addEventListener('change', function(e) {
-        sortField = e.target.value;
-        sortRoutes();
-    });
-    
-    document.getElementById('route-sort-direction').addEventListener('click', function(e) {
-        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-        // 只更新内部i元素的className，而不是整个按钮
-        const icon = e.target.querySelector('i');
-        if (icon) {
-            icon.className = `fa fa-sort-amount-${sortDirection === 'asc' ? 'asc' : 'desc'}`;
+    document.addEventListener('DOMContentLoaded', function() {
+        // 排序选择器
+        const sortSelect = document.getElementById('route-sort');
+        if (sortSelect) {
+            sortSelect.addEventListener('change', function(e) {
+                sortField = e.target.value;
+                sortRoutes();
+            });
+        } else {
+            console.error('Sort select element not found');
         }
-        sortRoutes();
+        
+        // 排序方向按钮
+        const sortDirectionBtn = document.getElementById('route-sort-direction');
+        if (sortDirectionBtn) {
+            sortDirectionBtn.addEventListener('click', function(e) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                // 只更新内部i元素的className，而不是整个按钮
+                const icon = e.target.querySelector('i') || e.target;
+                if (icon) {
+                    icon.className = `fa fa-sort-amount-${sortDirection === 'asc' ? 'asc' : 'desc'}`;
+                }
+                sortRoutes();
+            });
+        } else {
+            console.error('Sort direction button not found');
+        }
     });
     
     function sortRoutes() {
+        // 确保filteredRoutes是数组
+        if (!Array.isArray(filteredRoutes)) {
+            filteredRoutes = [];
+            return;
+        }
+        
         filteredRoutes.sort(function(a, b) {
             let aVal, bVal;
             
@@ -176,63 +212,20 @@
             if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
             return 0;
         });
+        
         renderTable();
     }
     
-    // 列显示/隐藏功能
-    function updateColumnVisibility() {
-        // ID列
-        const showId = document.getElementById('show-id').checked;
-        document.querySelectorAll('.col-id').forEach(function(col) {
-            col.style.display = showId ? '' : 'none';
-        });
-        
-        // 名称列
-        const showName = document.getElementById('show-name').checked;
-        document.querySelectorAll('.col-name').forEach(function(col) {
-            col.style.display = showName ? '' : 'none';
-        });
-        
-        // 类型列
-        const showType = document.getElementById('show-type').checked;
-        document.querySelectorAll('.col-type').forEach(function(col) {
-            col.style.display = showType ? '' : 'none';
-        });
-        
-        // 站点数量列
-        const showStations = document.getElementById('show-stations').checked;
-        document.querySelectorAll('.col-stations').forEach(function(col) {
-            col.style.display = showStations ? '' : 'none';
-        });
-        
-        // 状态列
-        const showStatus = document.getElementById('show-status').checked;
-        document.querySelectorAll('.col-status').forEach(function(col) {
-            col.style.display = showStatus ? '' : 'none';
-        });
-        
-        // 颜色列
-        const showColor = document.getElementById('show-color').checked;
-        document.querySelectorAll('.col-color').forEach(function(col) {
-            col.style.display = showColor ? '' : 'none';
-        });
-    }
-    
-    // 添加事件监听器
-    document.getElementById('show-id').addEventListener('change', updateColumnVisibility);
-    document.getElementById('show-name').addEventListener('change', updateColumnVisibility);
-    document.getElementById('show-type').addEventListener('change', updateColumnVisibility);
-    document.getElementById('show-stations').addEventListener('change', updateColumnVisibility);
-    document.getElementById('show-status').addEventListener('change', updateColumnVisibility);
-    document.getElementById('show-color').addEventListener('change', updateColumnVisibility);
-    
     // 初始化
-    renderTable();
-    updateColumnVisibility();
-    
-    // 设置颜色显示
-    document.querySelectorAll('[data-color]').forEach(function(el) {
-        el.style.backgroundColor = el.getAttribute('data-color');
+    document.addEventListener('DOMContentLoaded', function() {
+        // 初始渲染表格
+        renderTable();
+        
+        // 设置颜色显示
+        const colorElements = document.querySelectorAll('[data-color]');
+        colorElements.forEach(function(el) {
+            el.style.backgroundColor = el.getAttribute('data-color');
+        });
     });
 </script>
 {% endblock %}
