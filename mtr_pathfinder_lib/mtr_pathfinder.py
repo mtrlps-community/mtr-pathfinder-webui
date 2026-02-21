@@ -25,6 +25,7 @@ from PIL import Image, ImageDraw, ImageFont
 import networkx as nx
 import requests
 
+__version__ = '130'
 SERVER_TICK: int = 20
 
 DEFAULT_AVERAGE_SPEED: dict = {
@@ -578,7 +579,56 @@ def get_app_time_v4(route: dict,
     return t
 
 
-def create_graph(data: list, IGNORED_LINES: list[str],
+def check_route_name(route_data, IGNORED_LINES: list[str],
+                     ONLY_LINES: list[str] = None):
+    if ONLY_LINES is None:
+        ONLY_LINES = []
+
+    if ONLY_LINES:
+        IGNORED_LINES = []
+
+    lines_to_check = [x.lower().strip()
+                      for x in IGNORED_LINES + ONLY_LINES if x != '']
+    n: str = route_data['name']
+    number: str = route_data['number']
+    route_names = [n, n.split('|')[0], n.split('||')[0]]
+    if ('||' in n and n.count('|') > 2) or \
+            ('||' not in n and n.count('|') > 0):
+        eng_name = n.split('|')[1].split('|')[0]
+        if eng_name != '':
+            route_names.append(eng_name)
+
+    if number not in ['', ' ']:
+        for tmp_name in route_names[1:]:
+            route_names.append(tmp_name + ' ' + number)
+
+    cont = False
+    for x in route_names:
+        x = x.lower().strip()
+        if x in lines_to_check:
+            cont = True
+            break
+
+        if x.isascii():
+            continue
+
+        simp1 = opencc3.convert(x)
+        if simp1 in lines_to_check:
+            cont = True
+            break
+
+        simp2 = opencc3.convert(opencc4.convert(x))
+        if simp2 in lines_to_check:
+            cont = True
+            break
+
+    if ONLY_LINES:
+        cont = not cont
+
+    return cont
+
+
+def create_graph(data: list, IGNORED_LINES: list[str], ONLY_LINES: list[str],
                  CALCULATE_HIGH_SPEED: bool, CALCULATE_BOAT: bool,
                  CALCULATE_WALKING_WILD: bool, ONLY_LRT: bool,
                  AVOID_STATIONS: list, route_type: RouteType,
@@ -587,7 +637,7 @@ def create_graph(data: list, IGNORED_LINES: list[str],
                  version1: str, version2: str,
                  LOCAL_FILE_PATH, STATION_TABLE,
                  WILD_ADDITION, TRANSFER_ADDITION,
-                 MAX_WILD_BLOCKS, MTR_VER, cache, ONLY_ROUTES: list[str] = []) -> tuple[nx.MultiDiGraph, bool]:
+                 MAX_WILD_BLOCKS, MTR_VER, cache) -> nx.MultiDiGraph:
     '''
     Create the graph of all routes.
     '''
@@ -600,24 +650,23 @@ def create_graph(data: list, IGNORED_LINES: list[str],
 
     filename = ''
     m = hashlib.md5()
-    used_cache = False
     if cache is True and IGNORED_LINES == original_ignored_lines and \
             CALCULATE_BOAT is True and ONLY_LRT is False and \
-            AVOID_STATIONS == [] and route_type == RouteType.WAITING and \
-            not ONLY_ROUTES:
+            ONLY_LINES == [] and AVOID_STATIONS == [] and \
+            route_type == RouteType.WAITING:
         for s in original_ignored_lines:
             m.update(s.encode('utf-8'))
 
         filename = f'mtr_pathfinder_temp{os.sep}' + \
             f'3{int(CALCULATE_HIGH_SPEED)}{int(CALCULATE_WALKING_WILD)}' + \
-            f'-{version1}-{version2}-{m.hexdigest()}.dat'
+            f'-{version1}-{version2}-{m.hexdigest()}-{__version__}.dat'
         if os.path.exists(filename):
             with open(filename, 'rb') as f:
                 tup = pickle.load(f)
                 G = tup[0]
                 original = tup[1]
-            used_cache = True
-            return G, used_cache
+
+            return G
 
     routes = data[0]['routes']
     new_durations = {}
@@ -760,47 +809,10 @@ def create_graph(data: list, IGNORED_LINES: list[str],
 
                         break
 
-    TEMP_IGNORED_LINES = [x.lower().strip() for x in IGNORED_LINES if x != '']
-    TEMP_ONLY_ROUTES = [x.lower().strip() for x in ONLY_ROUTES if x != '']
     # 添加普通路线
     for route in data[0]['routes']:
-        # 使用原始路线名称
         n: str = route['name']
-        
-        # 禁路线
-        number: str = route['number']
-        route_names = [n, n.split('|')[0]]
-        if ('||' in n and n.count('|') > 2) or \
-                ('||' not in n and n.count('|') > 0):
-            eng_name = n.split('|')[1].split('|')[0]
-            if eng_name != '':
-                route_names.append(eng_name)
-
-        if number not in ['', ' ']:
-            for tmp_name in route_names[1:]:
-                route_names.append(tmp_name + ' ' + number)
-
-        cont = False
-        for x in route_names:
-            x = x.lower().strip()
-            if x in TEMP_IGNORED_LINES:
-                cont = True
-                break
-
-            if x.isascii():
-                continue
-
-            simp1 = opencc3.convert(x)
-            if simp1 in TEMP_IGNORED_LINES:
-                cont = True
-                break
-
-            simp2 = opencc3.convert(opencc4.convert(x))
-            if simp2 in TEMP_IGNORED_LINES:
-                cont = True
-                break
-
-        if cont is True:
+        if check_route_name(route, IGNORED_LINES, ONLY_LINES) is True:
             continue
 
         if (not CALCULATE_HIGH_SPEED) and route['type'] == 'train_high_speed':
@@ -811,27 +823,6 @@ def create_graph(data: list, IGNORED_LINES: list[str],
 
         if ONLY_LRT and route['type'] != 'train_light_rail':
             continue
-            
-        if TEMP_ONLY_ROUTES:
-            in_only_routes = False
-            for x in route_names:
-                x = x.lower().strip()
-                if x in TEMP_ONLY_ROUTES:
-                    in_only_routes = True
-                    break
-                    
-                simp1 = opencc3.convert(x)
-                if simp1 in TEMP_ONLY_ROUTES:
-                    in_only_routes = True
-                    break
-                    
-                simp2 = opencc3.convert(opencc4.convert(x))
-                if simp2 in TEMP_ONLY_ROUTES:
-                    in_only_routes = True
-                    break
-            
-            if not in_only_routes:
-                continue
 
         if route_type == RouteType.WAITING:
             if route['type'] == 'cable_car_normal':
@@ -856,6 +847,7 @@ def create_graph(data: list, IGNORED_LINES: list[str],
             for i2 in range(len(durations[i:])):
                 i2 += i + 1
                 if MTR_VER == 3:
+                    platform = None
                     station_1 = stations[i].split('_')[0]
                     station_2 = stations[i2].split('_')[0]
                     dur_list = durations[i:i2]
@@ -899,6 +891,7 @@ def create_graph(data: list, IGNORED_LINES: list[str],
                     else:
                         dur = round(sum(durations[i:i2]) + dwell)
 
+                    platform = station_1['name']
                     station_1 = station_1['id']
                     station_2 = station_2['id']
 
@@ -908,7 +901,7 @@ def create_graph(data: list, IGNORED_LINES: list[str],
                         edges_dict[(station_1, station_2)] = []
 
                     edges_dict[(station_1, station_2)].append(
-                        (dur, wait, route['name']))
+                        (dur, wait, route['name'], platform))
 
                     original_tuple = (route['name'], station_1, station_2)
                     if original_tuple in original:
@@ -918,12 +911,12 @@ def create_graph(data: list, IGNORED_LINES: list[str],
                     else:
                         original[original_tuple] = dur
                 else:
-                    if (station_1, station_2) in edges_attr_dict:
-                        edges_attr_dict[(station_1, station_2)].append(
-                            (route['name'], dur, 0))
-                    else:
-                        edges_attr_dict[(station_1, station_2)] = [
-                            (route['name'], dur, 0)]
+                    if (station_1, station_2) not in edges_attr_dict:
+                        edges_attr_dict[(station_1, station_2)] = []
+
+                    edges_attr_dict[(station_1, station_2)].append(
+                        ((route['name'], platform), dur, 0))
+
         # else:
             # for i, duration in enumerate(durations):
             #     station_1 = stations[i].split('_')[0]
@@ -959,13 +952,14 @@ def create_graph(data: list, IGNORED_LINES: list[str],
             dur = [x[0] for x in dur_tup]
             wait = [x[1] for x in dur_tup]
             routes = [x[2] for x in dur_tup]
+            platforms = [x[3] for x in dur_tup]
             final_wait = []
             final_routes = []
             min_dur = min(dur)
             for i, x in enumerate(dur):
                 if abs(x - min_dur) <= 60:
                     final_wait.append(wait[i])
-                    final_routes.append(routes[i])
+                    final_routes.append((routes[i], platforms[i]))
 
             s1 = tup[0]
             s2 = tup[1]
@@ -988,7 +982,7 @@ def create_graph(data: list, IGNORED_LINES: list[str],
                 if abs(t - min_dur) <= 60:
                     route_name = waiting_walking_dict[(s1, s2)][1]
                     dur = waiting_walking_dict[(s1, s2)][0]
-                    final_routes.append(route_name)
+                    final_routes.append((route_name, None))
                     original[(route_name, s1, s2)] = dur
 
             edges_attr_dict[(s1, s2)] = [(final_routes, min_dur, sum_int)]
@@ -997,13 +991,23 @@ def create_graph(data: list, IGNORED_LINES: list[str],
         u, v = edge[0]
         min_time = min(e[1] + e[2] for e in edge[1])
         for r in edge[1]:
-            route_name = r[0]
+            if isinstance(r[0], str):
+                route_name = r[0]
+                platform = None
+            else:
+                if isinstance(r[0], tuple):
+                    route_name = r[0][0]
+                    platform = r[0][1]
+                else:
+                    route_name = [x[0] for x in r[0]]
+                    platform = [x[1] for x in r[0]]
+
             duration = r[1]
             waiting_time = r[2]
             weight = duration + waiting_time
             if abs(weight - min_time) <= 60 and weight > 0:
                 G.add_edge(u, v, weight=weight, name=route_name,
-                           waiting=waiting_time)
+                           waiting=waiting_time, platform=platform)
 
     # 添加野外行走 (无铁路连接)
     if CALCULATE_WALKING_WILD is True:
@@ -1057,7 +1061,7 @@ def create_graph(data: list, IGNORED_LINES: list[str],
             with open(filename, 'wb') as f:
                 pickle.dump((G, original), f)
 
-    return G, used_cache
+    return G
 
 
 def find_shortest_route(G: nx.MultiDiGraph, start: str, end: str,
@@ -1110,16 +1114,24 @@ def process_path(G: nx.MultiDiGraph, path: list, shortest_distance: int,
         duration_list = []
         waiting_list = []
         route_name_list = []
+        platform_list = []
         for v in edge.values():
             duration = v['weight']
             route_name = v['name']
             waiting = v['waiting']
+            platform = v.get('platform')
             duration_list.append((route_name, duration))
             waiting_list.append((route_name, waiting))
             if isinstance(route_name, list):
                 route_name_list.extend(route_name)
             elif isinstance(route_name, str):
                 route_name_list.append(route_name)
+
+            if isinstance(platform, list):
+                platform_list.extend(platform)
+            else:
+                platform_list.append(platform)
+
             waiting_time += waiting
 
         if len(route_name_list) == 1:
@@ -1132,8 +1144,8 @@ def process_path(G: nx.MultiDiGraph, path: list, shortest_distance: int,
 
         sta1_name = stations[station_1]['name'].replace('|', ' ')
         sta2_name = stations[station_2]['name'].replace('|', ' ')
-        sta1_id = stations[station_1]['id']
-        for route_name in route_name_list:
+        sta1_id = station_1
+        for i1, route_name in enumerate(route_name_list):
             for x in duration_list:
                 if route_name == x[0]:
                     duration = x[1]
@@ -1157,21 +1169,19 @@ def process_path(G: nx.MultiDiGraph, path: list, shortest_distance: int,
                             waiting = x[1]
                             break
 
+            platform = platform_list[i1]
             for z in routes:
                 if z['name'] == route_name:
                     route = (z['number'] + ' ' +
                              route_name.split('||')[0]).strip()
                     route = route.replace('|', ' ')
                     next_id = None
-                    platform = ''
-                    
                     if MTR_VER == 3:
                         sta_id = z['stations'][-1].split('_')[0]
                         for q, x in enumerate(z['stations']):
                             if x.split('_')[0] == sta1_id and \
                                     q != len(z['stations']) - 1:
                                 next_id = z['stations'][q + 1].split('_')[0]
-                                platform = x.split('_')[1] if len(x.split('_')) > 1 else ''
                                 break
                     else:
                         sta_id = z['stations'][-1]['id']
@@ -1179,7 +1189,6 @@ def process_path(G: nx.MultiDiGraph, path: list, shortest_distance: int,
                             if x['id'] == sta1_id and \
                                     q != len(z['stations']) - 1:
                                 next_id = z['stations'][q + 1]['id']
-                                platform = x.get('name', '')
                                 break
 
                     if z['circular'] in ['cw', 'ccw']:
@@ -1526,13 +1535,12 @@ def main(station1: str, station2: str, LINK: str,
          TRANSFER_ADDITION: dict[str, list[str]] = {},
          WILD_ADDITION: dict[str, list[str]] = {},
          STATION_TABLE: dict[str, str] = {},
-         ORIGINAL_IGNORED_LINES: list = [],
-         UPDATE_DATA: bool = False,
+         ORIGINAL_IGNORED_LINES: list = [], UPDATE_DATA: bool = False,
          GEN_ROUTE_INTERVAL: bool = False, IGNORED_LINES: list = [],
-         ONLY_ROUTES: list[str] = [], AVOID_STATIONS: list = [], 
-         CALCULATE_HIGH_SPEED: bool = True,
-         CALCULATE_BOAT: bool = True, CALCULATE_WALKING_WILD: bool = False,
-         ONLY_LRT: bool = False, IN_THEORY: bool = False, DETAIL: bool = False,
+         ONLY_LINES: list = [], AVOID_STATIONS: list = [],
+         CALCULATE_HIGH_SPEED: bool = True, CALCULATE_BOAT: bool = True,
+         CALCULATE_WALKING_WILD: bool = False, ONLY_LRT: bool = False,
+         IN_THEORY: bool = False, DETAIL: bool = False,
          MTR_VER: int = 3, G=None, gen_image=True, show=False,
          cache=True) -> Union[tuple[Image.Image, str], bool, None]:
     '''
@@ -1583,12 +1591,13 @@ def main(station1: str, station2: str, LINK: str,
         route_type = RouteType.WAITING
 
     if G is None:
-        G, _ = create_graph(data, IGNORED_LINES, CALCULATE_HIGH_SPEED,
-                                     CALCULATE_BOAT, CALCULATE_WALKING_WILD, ONLY_LRT,
-                                     AVOID_STATIONS, route_type, ORIGINAL_IGNORED_LINES,
-                                     INTERVAL_PATH, version1, version2, LOCAL_FILE_PATH,
-                                     STATION_TABLE, WILD_ADDITION, TRANSFER_ADDITION,
-                                     MAX_WILD_BLOCKS, MTR_VER, cache, ONLY_ROUTES)
+        G = create_graph(data, IGNORED_LINES, ONLY_LINES,
+                         CALCULATE_HIGH_SPEED, CALCULATE_BOAT,
+                         CALCULATE_WALKING_WILD, ONLY_LRT, AVOID_STATIONS,
+                         route_type, ORIGINAL_IGNORED_LINES,
+                         INTERVAL_PATH, version1, version2, LOCAL_FILE_PATH,
+                         STATION_TABLE, WILD_ADDITION, TRANSFER_ADDITION,
+                         MAX_WILD_BLOCKS, MTR_VER, cache)
 
     shortest_path, shortest_distance, waiting_time, riding_time, ert = \
         find_shortest_route(G, station1, station2,
@@ -1625,11 +1634,10 @@ def run():
     # 禁止乘坐的路线（未开通的路线）
     ORIGINAL_IGNORED_LINES: list = []
 
-
     link_hash = hashlib.md5(LINK.encode('utf-8')).hexdigest()
     # 文件设置
     LOCAL_FILE_PATH = f'mtr-station-data-{link_hash}-mtr{MTR_VER}-v3.json'
-    INTERVAL_PATH = f'mtr-route-interval-data-{link_hash}-mtr{MTR_VER}-v3.json'
+    INTERVAL_PATH = f'mtr-route-interval-{link_hash}-mtr{MTR_VER}-v3.json'
     BASE_PATH = 'mtr_pathfinder_data'
     PNG_PATH = 'mtr_pathfinder_data'
 
@@ -1641,9 +1649,8 @@ def run():
     # 寻路设置
     # 避开的路线
     IGNORED_LINES: list = []
-    # 仅使用指定路线
-    # "路线名称1, 路线名称2, ..."
-    ONLY_ROUTES: list = []
+    # 仅使用指定路线（如启用，将忽略"避开的路线"参数）
+    ONLY_LINES: list = []
     # 避开的车站
     AVOID_STATIONS: list = []
     # 允许高铁，默认值为True
@@ -1668,7 +1675,7 @@ def run():
          BASE_PATH, PNG_PATH, MAX_WILD_BLOCKS,
          TRANSFER_ADDITION, WILD_ADDITION, STATION_TABLE,
          ORIGINAL_IGNORED_LINES, UPDATE_DATA, GEN_ROUTE_INTERVAL,
-         IGNORED_LINES, ONLY_ROUTES, AVOID_STATIONS, CALCULATE_HIGH_SPEED,
+         IGNORED_LINES, ONLY_LINES, AVOID_STATIONS, CALCULATE_HIGH_SPEED,
          CALCULATE_BOAT, CALCULATE_WALKING_WILD, ONLY_LRT, IN_THEORY, DETAIL,
          MTR_VER, show=True)
 

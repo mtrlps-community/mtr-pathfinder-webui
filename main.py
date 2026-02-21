@@ -545,8 +545,7 @@ def api_find_route():
                 UPDATE_DATA=False,
                 GEN_DEPARTURE=False,
                 IGNORED_LINES=data.get('ignored_lines', []),
-                ONLY_ROUTES=data.get('only_routes', []),
-
+                ONLY_LINES=data.get('only_lines', []),
                 AVOID_STATIONS=data.get('avoid_stations', []),
                 CALCULATE_HIGH_SPEED=not data.get('disable_high_speed', False),
                 CALCULATE_BOAT=not data.get('disable_boat', False),
@@ -661,10 +660,44 @@ def api_find_route():
                 'message': '正在构建站点连接图...'
             })
             
+            # 检查是否使用了缓存 - 在调用 create_graph 之前检查，以准确反映寻路请求发出时的缓存状态
+            # 缓存使用条件：cache=True, ignored_lines=original_ignored_lines, CALCULATE_BOAT=True, ONLY_LRT=False, ONLY_LINES=[], AVOID_STATIONS=[], route_type=RouteType.WAITING
+            cache_conditions_met = (True and 
+                                  ignored_lines == config['ORIGINAL_IGNORED_LINES'] and 
+                                  not data.get('disable_boat', False) and 
+                                  not data.get('only_lrt', False) and 
+                                  not data.get('only_lines', []) and 
+                                  not data.get('avoid_stations', []) and 
+                                  (RouteTypeV3.IN_THEORY if IN_THEORY else RouteTypeV3.WAITING) == RouteTypeV3.WAITING)
+            
+            used_cache = False
+            if cache_conditions_met:
+                # 生成与 create_graph 函数完全一致的缓存文件名
+                import hashlib
+                m = hashlib.md5()
+                for s in config['ORIGINAL_IGNORED_LINES']:
+                    m.update(s.encode('utf-8'))
+                
+                # 确定版本号和配置参数
+                version1 = ''
+                version2 = ''
+                CALCULATE_HIGH_SPEED = not data.get('disable_high_speed', False)
+                CALCULATE_WALKING_WILD = data.get('enable_wild', False)
+                __version__ = '130'  # 与 mtr_pathfinder.py 中的版本号保持一致
+                
+                # 生成缓存文件名
+                filename = f'mtr_pathfinder_temp{os.sep}' + \
+                    f'3{int(CALCULATE_HIGH_SPEED)}{int(CALCULATE_WALKING_WILD)}' + \
+                    f'-{version1}-{version2}-{m.hexdigest()}-{__version__}.dat'
+                
+                # 检查缓存文件是否实际存在（在调用 create_graph 之前检查）
+                used_cache = os.path.exists(filename)
+            
             # 创建图
-            G, used_cache = create_graph_v3(
+            G = create_graph_v3(
                 data_file,
                 ignored_lines,
+                data.get('only_lines', []),
                 not data.get('disable_high_speed', False),
                 not data.get('disable_boat', False),
                 data.get('enable_wild', False),
@@ -680,9 +713,7 @@ def api_find_route():
                 config['TRANSFER_ADDITION'],
                 config['MAX_WILD_BLOCKS'],
                 config['MTR_VER'],
-                True,
-                data.get('only_routes', []),
-                data.get('route_mapping_dict', {})
+                True
             )
             
             # 更新进度
@@ -890,8 +921,7 @@ def api_generate_image():
                 UPDATE_DATA=False,
                 GEN_DEPARTURE=False,
                 IGNORED_LINES=data.get('ignored_lines', []),
-                ONLY_ROUTES=data.get('only_routes', []),
-
+                ONLY_LINES=data.get('only_lines', []),
                 AVOID_STATIONS=data.get('avoid_stations', []),
                 CALCULATE_HIGH_SPEED=not data.get('disable_high_speed', False),
                 CALCULATE_BOAT=not data.get('disable_boat', False),
@@ -931,9 +961,10 @@ def api_generate_image():
             station_table = {x.lower(): y.lower() for x, y in config['STATION_TABLE'].items()}
             
             # 创建图
-            G, used_cache = create_graph_v3(
+            G = create_graph_v3(
                 data_file,
                 ignored_lines,
+                data.get('only_lines', []),
                 not data.get('disable_high_speed', False),
                 not data.get('disable_boat', False),
                 data.get('enable_wild', False),
@@ -949,9 +980,7 @@ def api_generate_image():
                 config['TRANSFER_ADDITION'],
                 config['MAX_WILD_BLOCKS'],
                 config['MTR_VER'],
-                True,
-                data.get('only_routes', []),
-                data.get('route_mapping_dict', {})
+                True
             )
             
             # 查找最短路径

@@ -43,7 +43,7 @@
                             <h4 class="font-semibold mb-2">注意事项：</h4>
                             <ul class="list-disc pl-5 space-y-2">
                                 <li>&lt;&gt; 必填，[] 选填</li>
-                                <li>“；”、“;” 都可以使用</li>
+                                <li>“；”和“;”（全角和半角分号） 都可以使用</li>
                             </ul>
                         </div>
                     </div>
@@ -93,7 +93,7 @@
                     <label class="block text-gray-700 font-medium mb-2" for="only-routes">
                         <i class="fa fa-check-circle mr-1"></i> 仅路线（分号分隔）
                     </label>
-                    <textarea id="only-routes" name="only_routes" class="form-input" placeholder="输入只能经过的路线，以分号分隔"></textarea>
+                    <textarea id="only-lines" name="only_lines" class="form-input" placeholder="输入只能经过的路线，以分号分隔"></textarea>
                 </div>
                 
                 <!-- 禁车站 -->
@@ -292,9 +292,9 @@
             startStationInput.value = '';
             endStationInput.value = '';
             ignoredLinesInput.value = '';
-            onlyRoutesInput = document.getElementById('only-routes');
-            if (onlyRoutesInput) {
-                onlyRoutesInput.value = '';
+            const onlyLinesInput = document.getElementById('only-lines');
+            if (onlyLinesInput) {
+                onlyLinesInput.value = '';
             }
             avoidStationsInput.value = '';
             disableHighSpeedCheckbox.checked = false;
@@ -427,18 +427,18 @@
                     case '仅路线':
                         // 处理仅路线，收集后续所有路线直到遇到下一个关键字
                         i++;
-                        const onlyRoutes = [];
+                        const onlyLines = [];
                         // 收集所有后续的路线，直到遇到下一个关键字
                         while (i < parts.length && !['禁路线', '禁车站', '详细', '理论', '实时', '越野', '禁高铁', '禁船', '仅轻铁'].includes(parts[i])) {
-                            onlyRoutes.push(parts[i]);
+                            onlyLines.push(parts[i]);
                             i++;
                         }
-                        onlyRoutesInput = document.getElementById('only-routes');
-                        if (onlyRoutesInput) {
-                            onlyRoutesInput.value = onlyRoutes.join(';');
+                        const onlyLinesInput = document.getElementById('only-lines');
+                        if (onlyLinesInput) {
+                            onlyLinesInput.value = onlyLines.join(';');
                             // 调整仅路线输入框高度
                             if (window.autoResizeTextarea) {
-                                window.autoResizeTextarea(onlyRoutesInput);
+                                window.autoResizeTextarea(onlyLinesInput);
                             }
                         }
                         break;
@@ -497,10 +497,10 @@
             }
             
             // 仅路线
-            const onlyRoutesInput = document.getElementById('only-routes');
-            const onlyRoutes = onlyRoutesInput ? onlyRoutesInput.value.split(/[,;；]/).map(line => line.trim()).filter(Boolean) : [];
-            if (onlyRoutes.length > 0) {
-                shortcode += `;仅路线;${onlyRoutes.join(';')}`;
+            const onlyLinesInput = document.getElementById('only-lines');
+            const onlyLines = onlyLinesInput ? onlyLinesInput.value.split(/[,;；]/).map(line => line.trim()).filter(Boolean) : [];
+            if (onlyLines.length > 0) {
+                shortcode += `;仅路线;${onlyLines.join(';')}`;
             }
             
             // 禁车站
@@ -542,7 +542,7 @@
             startStationInput,
             endStationInput,
             ignoredLinesInput,
-            document.getElementById('only-routes'),
+            document.getElementById('only-lines'),
             avoidStationsInput,
             disableHighSpeedCheckbox,
             disableBoatCheckbox,
@@ -746,7 +746,7 @@
             start: formData.get('start'),
             end: formData.get('end'),
             ignored_lines: formData.get('ignored_lines').split(',').map(s => s.trim()).filter(Boolean),
-            only_routes: formData.get('only_routes').split(',').map(s => s.trim()).filter(Boolean),
+            only_lines: formData.get('only_lines').split(',').map(s => s.trim()).filter(Boolean),
             avoid_stations: formData.get('avoid_stations').split(',').map(s => s.trim()).filter(Boolean),
             disable_high_speed: formData.get('disable_high_speed') === 'on',
             disable_boat: formData.get('disable_boat') === 'on',
@@ -758,7 +758,7 @@
         try {
             // 转换禁路线、仅路线和禁车站的分隔符为逗号，以适应API要求
             data.ignored_lines = formData.get('ignored_lines').split(/[,;；]/).map(s => s.trim()).filter(Boolean);
-            data.only_routes = formData.get('only_routes').split(/[,;；]/).map(s => s.trim()).filter(Boolean);
+            data.only_lines = formData.get('only_lines').split(/[,;；]/).map(s => s.trim()).filter(Boolean);
             data.avoid_stations = formData.get('avoid_stations').split(/[,;；]/).map(s => s.trim()).filter(Boolean);
             
             // 发送请求
@@ -1774,7 +1774,7 @@
                 start: formData.get('start'),
                 end: formData.get('end'),
                 ignored_lines: formData.get('ignored_lines').split(/[,;；]/).map(s => s.trim()).filter(Boolean),
-                only_routes: formData.get('only_routes').split(/[,;；]/).map(s => s.trim()).filter(Boolean),
+                only_lines: formData.get('only_lines').split(/[,;；]/).map(s => s.trim()).filter(Boolean),
                 avoid_stations: formData.get('avoid_stations').split(/[,;；]/).map(s => s.trim()).filter(Boolean),
                 disable_high_speed: formData.get('disable_high_speed') === 'on',
                 disable_boat: formData.get('disable_boat') === 'on',
