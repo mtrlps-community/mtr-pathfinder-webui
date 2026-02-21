@@ -50,7 +50,6 @@ default_config = {
     'WILD_ADDITION': {},
     'STATION_TABLE': {},
     'ORIGINAL_IGNORED_LINES': [],
-    'ROUTE_MAPPING': {},
     'CONSOLE_PASSWORD': 'admin',
 }
 
@@ -547,7 +546,7 @@ def api_find_route():
                 GEN_DEPARTURE=False,
                 IGNORED_LINES=data.get('ignored_lines', []),
                 ONLY_ROUTES=data.get('only_routes', []),
-                ROUTE_MAPPING=data.get('route_mapping_dict', {}),
+
                 AVOID_STATIONS=data.get('avoid_stations', []),
                 CALCULATE_HIGH_SPEED=not data.get('disable_high_speed', False),
                 CALCULATE_BOAT=not data.get('disable_boat', False),
@@ -578,13 +577,27 @@ def api_find_route():
                 return jsonify({'error': '车站名称不正确，请检查输入'}), 400
             
             # 处理v4版程序的返回结果
-            # v4版返回的是路线详情列表，需要转换为前端期望的格式
+            # 注意：v4版函数返回值有两种情况：
+            # 1. 当gen_image=False时，返回的是every_route_time列表（直接返回路线详情）
+            # 2. 当gen_image=True时，返回的是包含5个元素的列表
+            
+            # 提取路线详情列表
+            every_route_time = []
+            if isinstance(result, list):
+                if result and isinstance(result[0], tuple) and len(result[0]) >= 4:
+                    # 情况1：直接返回的是every_route_time列表
+                    every_route_time = result
+                elif len(result) >= 5:
+                    # 情况2：返回的是包含5个元素的列表，第5个元素是every_route_time
+                    every_route_time = result[4]
+            else:
+                every_route_time = []
             
             # 构建车站列表
             station_names = []
-            for leg in result:
+            for leg in every_route_time:
                 if len(leg) >= 2:
-                    # leg格式：(起点站, 终点站, 颜色, 路线名, 终点站信息, 发车时间, 到站时间, 交通类型)
+                    # leg格式：(起点站, 终点站, 颜色, 路线名, 终点站信息, 发车时间, 到站时间, 交通类型, 站台编号, 原始路线名)
                     start_station, end_station = leg[0], leg[1]
                     route_name = leg[3]
                     
@@ -595,9 +608,9 @@ def api_find_route():
             
             # 计算总用时、乘车时间和等车时间
             # v4版返回的是实际的发车和到站时间，需要计算差值
-            if result:
-                total_time = result[-1][6] - result[0][5]  # 总用时 = 最后一站到站时间 - 第一站发车时间
-                riding_time = sum(leg[6] - leg[5] for leg in result)  # 乘车时间 = 各段乘车时间之和
+            if every_route_time:
+                total_time = every_route_time[-1][6] - every_route_time[0][5]  # 总用时 = 最后一站到站时间 - 第一站发车时间
+                riding_time = sum(leg[6] - leg[5] for leg in every_route_time)  # 乘车时间 = 各段乘车时间之和
                 waiting_time = total_time - riding_time  # 等车时间 = 总用时 - 乘车时间
             else:
                 total_time = 0
@@ -608,7 +621,7 @@ def api_find_route():
             formatted_result = [
                 total_time,  # 总用时 (元素0)
                 station_names,  # 车站列表 (元素1)
-                result,  # 路线详情 (元素2)
+                every_route_time,  # 路线详情 (元素2) - 使用正确的路线详情列表
                 riding_time,  # 乘车时间 (元素3)
                 waiting_time  # 等车时间 (元素4)
             ]
@@ -791,12 +804,7 @@ def api_progress():
     global search_progress
     return jsonify(search_progress)
 
-@app.route('/api/get_config', methods=['GET'])
-def api_get_config():
-    """获取配置信息"""
-    return jsonify({
-        'route_mapping': config.get('ROUTE_MAPPING', {})
-    })
+
 
 @app.route('/api/update_progress', methods=['GET'])
 def api_update_progress():
@@ -883,7 +891,7 @@ def api_generate_image():
                 GEN_DEPARTURE=False,
                 IGNORED_LINES=data.get('ignored_lines', []),
                 ONLY_ROUTES=data.get('only_routes', []),
-                ROUTE_MAPPING=data.get('route_mapping_dict', {}),
+
                 AVOID_STATIONS=data.get('avoid_stations', []),
                 CALCULATE_HIGH_SPEED=not data.get('disable_high_speed', False),
                 CALCULATE_BOAT=not data.get('disable_boat', False),
@@ -1120,8 +1128,7 @@ def api_update_config():
     if 'original_ignored_lines' in data:
         config['ORIGINAL_IGNORED_LINES'] = data['original_ignored_lines']
     
-    if 'route_mapping' in data:
-        config['ROUTE_MAPPING'] = data['route_mapping']
+
     
     save_config(config)
     return jsonify({'success': True})

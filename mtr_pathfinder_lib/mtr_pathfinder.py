@@ -587,8 +587,7 @@ def create_graph(data: list, IGNORED_LINES: list[str],
                  version1: str, version2: str,
                  LOCAL_FILE_PATH, STATION_TABLE,
                  WILD_ADDITION, TRANSFER_ADDITION,
-                 MAX_WILD_BLOCKS, MTR_VER, cache, ONLY_ROUTES: list[str] = [],
-                 ROUTE_MAPPING: dict = {}) -> tuple[nx.MultiDiGraph, bool]:
+                 MAX_WILD_BLOCKS, MTR_VER, cache, ONLY_ROUTES: list[str] = []) -> tuple[nx.MultiDiGraph, bool]:
     '''
     Create the graph of all routes.
     '''
@@ -765,17 +764,8 @@ def create_graph(data: list, IGNORED_LINES: list[str],
     TEMP_ONLY_ROUTES = [x.lower().strip() for x in ONLY_ROUTES if x != '']
     # 添加普通路线
     for route in data[0]['routes']:
-        # 应用线路映射配置
+        # 使用原始路线名称
         n: str = route['name']
-        # 如果当前路线名称在映射表中，使用映射后的名称
-        if ROUTE_MAPPING and n in ROUTE_MAPPING:
-            n = ROUTE_MAPPING[n]
-        elif ROUTE_MAPPING:
-            # 尝试匹配路线名称的不同格式
-            for original_name, mapped_name in ROUTE_MAPPING.items():
-                if original_name in n:
-                    n = mapped_name
-                    break
         
         # 禁路线
         number: str = route['number']
@@ -1536,7 +1526,7 @@ def main(station1: str, station2: str, LINK: str,
          TRANSFER_ADDITION: dict[str, list[str]] = {},
          WILD_ADDITION: dict[str, list[str]] = {},
          STATION_TABLE: dict[str, str] = {},
-         ORIGINAL_IGNORED_LINES: list = [], ROUTE_MAPPING: dict = {},
+         ORIGINAL_IGNORED_LINES: list = [],
          UPDATE_DATA: bool = False,
          GEN_ROUTE_INTERVAL: bool = False, IGNORED_LINES: list = [],
          ONLY_ROUTES: list[str] = [], AVOID_STATIONS: list = [], 
@@ -1598,8 +1588,7 @@ def main(station1: str, station2: str, LINK: str,
                                      AVOID_STATIONS, route_type, ORIGINAL_IGNORED_LINES,
                                      INTERVAL_PATH, version1, version2, LOCAL_FILE_PATH,
                                      STATION_TABLE, WILD_ADDITION, TRANSFER_ADDITION,
-                                     MAX_WILD_BLOCKS, MTR_VER, cache, ONLY_ROUTES,
-                                     ROUTE_MAPPING)
+                                     MAX_WILD_BLOCKS, MTR_VER, cache, ONLY_ROUTES)
 
     shortest_path, shortest_distance, waiting_time, riding_time, ert = \
         find_shortest_route(G, station1, station2,
@@ -1635,9 +1624,7 @@ def run():
     STATION_TABLE: dict[str, str] = {}
     # 禁止乘坐的路线（未开通的路线）
     ORIGINAL_IGNORED_LINES: list = []
-    # 路线名称映射
-    # "原始路线名称: 映射后的路线名称, ..."
-    ROUTE_MAPPING: dict = {}
+
 
     link_hash = hashlib.md5(LINK.encode('utf-8')).hexdigest()
     # 文件设置
@@ -1680,7 +1667,7 @@ def run():
     main(station1, station2, LINK, LOCAL_FILE_PATH, INTERVAL_PATH,
          BASE_PATH, PNG_PATH, MAX_WILD_BLOCKS,
          TRANSFER_ADDITION, WILD_ADDITION, STATION_TABLE,
-         ORIGINAL_IGNORED_LINES, ROUTE_MAPPING, UPDATE_DATA, GEN_ROUTE_INTERVAL,
+         ORIGINAL_IGNORED_LINES, UPDATE_DATA, GEN_ROUTE_INTERVAL,
          IGNORED_LINES, ONLY_ROUTES, AVOID_STATIONS, CALCULATE_HIGH_SPEED,
          CALCULATE_BOAT, CALCULATE_WALKING_WILD, ONLY_LRT, IN_THEORY, DETAIL,
          MTR_VER, show=True)

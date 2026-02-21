@@ -460,7 +460,7 @@ def gen_timetable(data: dict, IGNORED_LINES: list[str],
                   original_ignored_lines: list[str], DEP_PATH: str,
                   version1: str, version2: str,
                   STATION_TABLE, WILD_ADDITION, TRANSFER_ADDITION,
-                  ONLY_ROUTES: list[str] = [], ROUTE_MAPPING: dict = {}
+                  ONLY_ROUTES: list[str] = []
                   ) -> list[tuple]:
     '''
     Generate the timetable of all routes.
@@ -476,7 +476,7 @@ def gen_timetable(data: dict, IGNORED_LINES: list[str],
     if IGNORED_LINES == original_ignored_lines and \
             CALCULATE_BOAT is True and ONLY_LRT is False and \
             AVOID_STATIONS == [] and route_type == RouteType.REAL_TIME and \
-            not ONLY_ROUTES and not ROUTE_MAPPING:
+            not ONLY_ROUTES:
         for s in original_ignored_lines:
             m.update(s.encode('utf-8'))
 
@@ -504,16 +504,8 @@ def gen_timetable(data: dict, IGNORED_LINES: list[str],
         route = data['routes'][route_id]
         n: str = route['name']
         
-        # 应用线路映射配置
+        # 使用原始路线名称，不再应用线路映射
         mapped_name = n
-        if ROUTE_MAPPING and n in ROUTE_MAPPING:
-            mapped_name = ROUTE_MAPPING[n]
-        elif ROUTE_MAPPING:
-            # 尝试匹配路线名称的不同格式
-            for original_name, new_name in ROUTE_MAPPING.items():
-                if original_name in n:
-                    mapped_name = new_name
-                    break
         
         # 检查是否在忽略路线中
         if mapped_name.split('|')[0].lower() in TEMP_IGNORED_LINES or \
@@ -801,9 +793,11 @@ def process_path(result: list[tuple], start: str, end: str,
         sta1_name = station_num_to_name(data, station_1).replace('|', ' ')
         sta2_name = station_num_to_name(data, station_2).replace('|', ' ')
         route_name = x[4][0]
+        platform = ''
         if route_name in data['routes']:
             z = data['routes'][route_name]
             route_name = data['routes'][route_name]['name']
+            original_route_name = route_name
             route = (z['number'] + ' ' + route_name.split('||')[0]).strip()
             route = route.replace('|', ' ')
             terminus_name: str = stations[x[4][1]]['name']
@@ -823,15 +817,30 @@ def process_path(result: list[tuple], start: str, end: str,
 
             color = hex(z['color']).lstrip('0x').rjust(6, '0')
             train_type = z['type']
+            
+            # station_1是数值字符串，需要转换为十六进制后与station['station']比较
+            # 先将station_1转换为十六进制字符串，格式与station['station']一致
+            station_hex = hex(int(station_1))[2:]
+            
+            # 遍历所有车站，找到匹配的station['station']
+            for station_id, station_data in data['stations'].items():
+                if station_data['station'] == station_hex:
+                    # 找到车站后，遍历线路的stations数组，找到该车站对应的站台编号
+                    for i, route_station in enumerate(z['stations']):
+                        if route_station['id'] == station_id:
+                            platform = route_station['name']
+                            break
+                    break
         else:
             color = '000000'
+            original_route_name = route_name
             route = route_name
             terminus = (route_name.split('，用时')[0], 'Walk')
             train_type = None
 
         color = '#' + color
         r = (sta1_name, sta2_name, color, route, terminus,
-             x[2], x[3], train_type)
+             x[2], x[3], train_type, platform, original_route_name)
         every_route_time.append(r)
 
     return every_route_time
@@ -850,7 +859,7 @@ def save_image(route_type: RouteType, every_route_time: list,
          str(strftime('%H:%M:%S', gmtime(departure_time)))))  # 出发时间
     time_img = Image.open(PNG_PATH + os.sep + 'time.png')
     for route_data in every_route_time:
-        route_img = Image.open(PNG_PATH + os.sep + f'{route_data[-1]}.png')
+        route_img = Image.open(PNG_PATH + os.sep + f'{route_data[7]}.png')
         terminus = route_data[4][0] + '方向 To ' + route_data[4][1]
 
         time1 = str(strftime('%H:%M:%S', gmtime(route_data[5])))
@@ -864,7 +873,7 @@ def save_image(route_type: RouteType, every_route_time: list,
         pattern.append((ImagePattern.TEXT, time1))  # 发车时间
         pattern.append((ImagePattern.THUMB_TEXT, route_img,
                         route_data[3]))  # 路线名
-        if route_data[-1] is not None:
+        if route_data[7] is not None:
             # 正常
             pattern.append((ImagePattern.GREY_TEXT, terminus))  # 方向
 
@@ -1050,7 +1059,7 @@ def main(station1: str, station2: str, LINK: str,
          TRANSFER_ADDITION: dict[str, list[str]] = {},
          WILD_ADDITION: dict[str, list[str]] = {},
          STATION_TABLE: dict[str, str] = {},
-         ORIGINAL_IGNORED_LINES: list = [], ROUTE_MAPPING: dict = {},
+         ORIGINAL_IGNORED_LINES: list = [],
          UPDATE_DATA: bool = False,
          GEN_DEPARTURE: bool = False, IGNORED_LINES: list = [],
          ONLY_ROUTES: list[str] = [], AVOID_STATIONS: list = [],
@@ -1111,7 +1120,7 @@ def main(station1: str, station2: str, LINK: str,
             CALCULATE_WALKING_WILD, ONLY_LRT, AVOID_STATIONS, route_type,
             ORIGINAL_IGNORED_LINES, DEP_PATH, version1, version2,
             STATION_TABLE, WILD_ADDITION, TRANSFER_ADDITION,
-            ONLY_ROUTES, ROUTE_MAPPING)
+            ONLY_ROUTES)
 
     tt, trips = load_tt(timetable, data, station1, station2, departure_time,
                         DEP_PATH, STATION_TABLE, TRANSFER_ADDITION,
@@ -1161,9 +1170,7 @@ def run():
     STATION_TABLE: dict[str, str] = {}
     # 禁止乘坐的路线（未开通的路线）
     ORIGINAL_IGNORED_LINES: list = []
-    # 路线名称映射
-    # "原始路线名称: 映射后的路线名称, ..."
-    ROUTE_MAPPING: dict = {}
+
 
     # 文件设置
     link_hash = hashlib.md5(LINK.encode('utf-8')).hexdigest()
@@ -1206,7 +1213,7 @@ def run():
     main(station1, station2, LINK, LOCAL_FILE_PATH, DEP_PATH,
          BASE_PATH, PNG_PATH, MAX_WILD_BLOCKS,
          TRANSFER_ADDITION, WILD_ADDITION, STATION_TABLE,
-         ORIGINAL_IGNORED_LINES, ROUTE_MAPPING, UPDATE_DATA, GEN_DEPARTURE,
+         ORIGINAL_IGNORED_LINES, UPDATE_DATA, GEN_DEPARTURE,
          IGNORED_LINES, ONLY_ROUTES, AVOID_STATIONS, CALCULATE_HIGH_SPEED,
          CALCULATE_BOAT, CALCULATE_WALKING_WILD, ONLY_LRT, DETAIL, MAX_HOUR,
          show=True, departure_time=DEP_TIME)

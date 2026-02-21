@@ -815,19 +815,19 @@
     }
     
     // 显示结果
-    function displayResult(routeResult, algorithm, calcTime, dataVersions, usedCache) {
-        result.classList.remove('hidden');
-        
-        // 解析routeresult数组，添加默认值处理
-        const totalTime = routeResult[0] || 0; // 总用时 (元素0, 秒)
-        const travelingTime = routeResult[3] || 0; // 乘车时间 (元素3, 秒)
-        const waitingTime = routeResult[4] || 0; // 等车时间 (元素4, 秒)
-        
-        // 确保stationNames是数组
-        const stationNames = Array.isArray(routeResult[1]) ? routeResult[1] : [];
-        
-        // 确保routeDetails是数组，避免TypeError
-        const routeDetails = Array.isArray(routeResult[2]) ? routeResult[2] : [];
+        function displayResult(routeResult, algorithm, calcTime, dataVersions, usedCache) {
+            result.classList.remove('hidden');
+            
+            // 解析routeresult数组，添加默认值处理
+            const totalTime = routeResult[0] || 0; // 总用时 (元素0, 秒)
+            const travelingTime = routeResult[3] || 0; // 乘车时间 (元素3, 秒)
+            const waitingTime = routeResult[4] || 0; // 等车时间 (元素4, 秒)
+            
+            // 确保stationNames是数组
+            const stationNames = Array.isArray(routeResult[1]) ? routeResult[1] : [];
+            
+            // 确保routeDetails是数组，避免TypeError
+            const routeDetails = Array.isArray(routeResult[2]) ? routeResult[2] : [];
         
         // 生成结果图片
         generateResultImage(stationNames, routeDetails, algorithm);
@@ -1045,8 +1045,30 @@
             routeInfoDiv.className = 'route-info';
             
             // 解析路线详细信息，添加默认值
-            // 路线详情数组结构：[起点, 终点, 颜色, 路线名, 终点站信息, 时长, 等车时间, 发车间隔, 交通类型, 站台编号, 原始路线名]
-            const [, , color = '#4a90e2', routeName = '', terminus = '', duration = 0, segmentWaitingTime = 0, departureInterval = 0, trainType = 'train_normal', platform = '', originalRouteName = ''] = routeDetail;
+            // 路线详情数组结构：
+            // v3: [起点, 终点, 颜色, 路线名, 终点站信息, 时长, 等车时间, 发车间隔, 交通类型, 站台编号, 原始路线名]
+            // v4(实时模式): [起点, 终点, 颜色, 路线名, 终点站信息, 时长, 等车时间, 交通类型, 站台编号, 原始路线名] (与v3保持一致)
+            let originalRouteName = '';
+            let platform = '';
+            let departureInterval = 0;
+            
+            // 使用更灵活的方式解析，适应不同长度的routeDetail数组
+            if (routeDetail.length >= 11) {
+                // v3版本 - 完整格式
+                var [, , color = '#4a90e2', routeName = '', terminus = '', duration = 0, segmentWaitingTime = 0, depInterval = 0, trainType = 'train_normal', plat = '', tempOriginalRouteName = ''] = routeDetail;
+                originalRouteName = tempOriginalRouteName;
+                platform = plat;
+                departureInterval = depInterval;
+            } else {
+                // v4版本（实时模式）和其他情况
+                // 提取已知位置的字段
+                var [, , color = '#4a90e2', routeName = '', terminus = '', duration = 0, segmentWaitingTime = 0, trainType = 'train_normal'] = routeDetail;
+                
+                // 尝试提取站台编号和原始路线名，不管数组长度如何
+                // 对于v4版本，站台编号在第9个位置（索引8），原始路线名在第10个位置（索引9）
+                platform = routeDetail[8] || '';
+                originalRouteName = routeDetail[9] || routeName;
+            }
             
             // 处理路线名称，只保留中文和英文，去除方向和分隔符
             // 原始格式："地鐵南大陸綫北段|Metro South Continental Line N. Section||to New Red Leaves"
@@ -1166,19 +1188,6 @@
                 // 1. 删去||后面的方向信息
                 // 2. 只保留第一条|前面的内容，使用一种语言的线路名
                 routeToAdd = routeToAdd.split('||')[0].split('|')[0].trim();
-                
-                // 检查是否有线路映射配置
-                if (window.routeMapping && window.routeMapping[routeToAdd]) {
-                    routeToAdd = window.routeMapping[routeToAdd];
-                } else {
-                    // 尝试匹配部分名称
-                    for (const originalName in window.routeMapping) {
-                        if (routeToAdd.includes(originalName)) {
-                            routeToAdd = window.routeMapping[originalName];
-                            break;
-                        }
-                    }
-                }
                     
                     // 检查是否已存在
                     const lines = currentValue.split(/[,;；]/).map(line => line.trim()).filter(Boolean);
@@ -1813,20 +1822,7 @@
         const closeImageModal = document.getElementById('close-image-modal');
         const resultImage = document.getElementById('result-image');
         
-        // 获取线路映射配置
-        async function fetchRouteMapping() {
-            try {
-                const response = await fetch('/api/get_config');
-                const config = await response.json();
-                window.routeMapping = config.route_mapping || {};
-            } catch (error) {
-                console.error('获取线路映射配置失败:', error);
-                window.routeMapping = {};
-            }
-        }
-        
-        // 页面加载时获取线路映射配置
-        fetchRouteMapping();
+
         
         // 查看图片按钮点击事件
         viewImageBtn.addEventListener('click', async function() {

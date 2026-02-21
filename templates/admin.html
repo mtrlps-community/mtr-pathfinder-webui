@@ -112,14 +112,7 @@
                     <textarea id="original-ignored-lines" class="form-input" placeholder='JSON格式数组，例如：["线路1", "线路2"]'>{{ config['ORIGINAL_IGNORED_LINES']|tojson }}</textarea>
                 </div>
                 
-                <!-- 禁路线线路映射配置 -->
-                <div>
-                    <label class="block text-gray-700 font-medium mb-2" for="route-mapping">
-                        <i class="fa fa-exchange mr-1"></i> 禁路线线路映射 (ROUTE_MAPPING)
-                    </label>
-                    <p class="text-sm text-gray-500 mb-2">线路名称映射，用于处理命名不符合规范的线路，格式："原始线路名": "映射后线路名", ...</p>
-                    <textarea id="route-mapping" class="form-input" placeholder='JSON格式，例如：{"线路1原始名称": "线路1映射名称", "线路2原始名称": "线路2映射名称"}'>{{ config['ROUTE_MAPPING']|tojson }}</textarea>
-                </div>
+
                 
                 <!-- 操作按钮区域 -->
                 <div>
@@ -257,13 +250,14 @@
         const maxWildBlocks = parseInt(document.getElementById('max-wild-blocks').value);
         
         // 解析JSON配置项
-        let transferAddition, wildAddition, stationTable, originalIgnoredLines, routeMapping;
+        let transferAddition, wildAddition, stationTable, originalIgnoredLines;
+        // 移除禁路线线路映射配置，使用默认空对象
+        const routeMapping = {};
         try {
             transferAddition = JSON.parse(document.getElementById('transfer-addition').value || '{}');
             wildAddition = JSON.parse(document.getElementById('wild-addition').value || '{}');
             stationTable = JSON.parse(document.getElementById('station-table').value || '{}');
             originalIgnoredLines = JSON.parse(document.getElementById('original-ignored-lines').value || '[]');
-            routeMapping = JSON.parse(document.getElementById('route-mapping').value || '{}');
         } catch (jsonError) {
             showStatus('JSON格式错误: ' + jsonError.message, false);
             return;
