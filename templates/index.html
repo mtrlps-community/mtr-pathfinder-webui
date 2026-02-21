@@ -1045,8 +1045,8 @@
             routeInfoDiv.className = 'route-info';
             
             // 解析路线详细信息，添加默认值
-            // 路线详情数组结构：[起点, 终点, 颜色, 路线名, 终点站信息, 时长, 等车时间, 发车间隔, 交通类型, 站台编号]
-            const [, , color = '#4a90e2', routeName = '', terminus = '', duration = 0, segmentWaitingTime = 0, departureInterval = 0, trainType = 'train_normal', platform = ''] = routeDetail;
+            // 路线详情数组结构：[起点, 终点, 颜色, 路线名, 终点站信息, 时长, 等车时间, 发车间隔, 交通类型, 站台编号, 原始路线名]
+            const [, , color = '#4a90e2', routeName = '', terminus = '', duration = 0, segmentWaitingTime = 0, departureInterval = 0, trainType = 'train_normal', platform = '', originalRouteName = ''] = routeDetail;
             
             // 处理路线名称，只保留中文和英文，去除方向和分隔符
             // 原始格式："地鐵南大陸綫北段|Metro South Continental Line N. Section||to New Red Leaves"
@@ -1159,19 +1159,13 @@
                 const ignoredLinesInput = document.getElementById('ignored-lines');
                 const currentValue = ignoredLinesInput.value;
                 
-                // 直接从processedRouteName中提取中文部分，确保只添加一种语言
-                // processedRouteName格式："地鐵南大陸綫北段 Metro South Continental Line N. Section"
-                let routeToAdd = processedRouteName;
+                // 使用后端返回的原始路线名称，并进行处理
+                let routeToAdd = originalRouteName;
                 
-                // 使用正则表达式只提取中文部分
-                // 匹配连续的中文字符
-                const chineseMatch = routeToAdd.match(/[\u4e00-\u9fa5]+/);
-                if (chineseMatch) {
-                    routeToAdd = chineseMatch[0].trim();
-                } else {
-                    // 如果没有中文，使用整个名称
-                    routeToAdd = routeToAdd.trim();
-                }
+                // 处理原始路线名称：
+                // 1. 删去||后面的方向信息
+                // 2. 只保留第一条|前面的内容，使用一种语言的线路名
+                routeToAdd = routeToAdd.split('||')[0].split('|')[0].trim();
                 
                 // 检查是否有线路映射配置
                 if (window.routeMapping && window.routeMapping[routeToAdd]) {
@@ -1309,8 +1303,8 @@
                     }
                     
                     const otherRoute = matchedRouteDetails[j];
-                    // 正确的数组解构：[起点, 终点, 颜色, 路线名, 终点站信息, 时长, 等车时间, 发车间隔, 交通类型]
-                    const [, , otherColor = '#4a90e2', otherRouteName = '', , otherDuration = 0, , , otherTrainType = 'train_normal'] = otherRoute;
+                    // 正确的数组解构：[起点, 终点, 颜色, 路线名, 终点站信息, 时长, 等车时间, 发车间隔, 交通类型, 站台编号, 原始路线名]
+                    const [, , otherColor = '#4a90e2', otherRouteName = '', , otherDuration = 0, , , otherTrainType = 'train_normal', , otherOriginalRouteName = ''] = otherRoute;
                     
                     // 处理其他路线名称
                     let processedOtherRouteName = otherRouteName;

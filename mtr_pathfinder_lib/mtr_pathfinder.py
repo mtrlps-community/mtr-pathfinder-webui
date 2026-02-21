@@ -1240,7 +1240,7 @@ def process_path(G: nx.MultiDiGraph, path: list, shortest_distance: int,
                 sep_waiting = int(intervals[route_name])
 
             r = (sta1_name, sta2_name, color, route, terminus, duration,
-                 waiting, sep_waiting, train_type, platform)
+                 waiting, sep_waiting, train_type, platform, z['name'])
 
             if len(each_route_time) > 0:
                 old_r = each_route_time[-1]
@@ -1593,7 +1593,7 @@ def main(station1: str, station2: str, LINK: str,
         route_type = RouteType.WAITING
 
     if G is None:
-        G = create_graph(data, IGNORED_LINES, CALCULATE_HIGH_SPEED,
+        G, _ = create_graph(data, IGNORED_LINES, CALCULATE_HIGH_SPEED,
                                      CALCULATE_BOAT, CALCULATE_WALKING_WILD, ONLY_LRT,
                                      AVOID_STATIONS, route_type, ORIGINAL_IGNORED_LINES,
                                      INTERVAL_PATH, version1, version2, LOCAL_FILE_PATH,
