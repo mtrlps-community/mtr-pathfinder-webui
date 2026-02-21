@@ -67,15 +67,7 @@
 {% block scripts %}
 <script>
     // 车站数据
-    let stationsData = [];
-    try {
-        // 使用JSON.parse解析JSON字符串，使用双引号避免单引号转义问题
-        stationsData = JSON.parse("{{ stations|tojson }}");
-    } catch (error) {
-        console.error('Error loading stations data:', error);
-        // 如果解析失败，使用默认空值
-        stationsData = [];
-    }
+    let stationsData = {{ stations|tojson }};
     // 确保stationsData是数组
     if (!Array.isArray(stationsData)) {
         stationsData = [];

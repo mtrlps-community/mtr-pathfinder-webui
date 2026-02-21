@@ -72,19 +72,8 @@
 {% block scripts %}
 <script>
     // 线路数据
-    let routesData = [];
-    let intervalData = {};
-    
-    try {
-        // 使用JSON.parse解析JSON字符串，使用双引号避免单引号转义问题
-        routesData = JSON.parse("{{ routes|tojson }}");
-        intervalData = JSON.parse("{{ interval_data|tojson }}");
-    } catch (error) {
-        console.error('Error loading data:', error);
-        // 如果解析失败，使用默认空值
-        routesData = [];
-        intervalData = {};
-    }
+    let routesData = {{ routes|tojson }};
+    let intervalData = {{ interval_data|tojson }};
     
     // 确保数据类型正确
     if (!Array.isArray(routesData)) {
