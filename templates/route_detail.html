@@ -136,48 +136,51 @@
                         <span class="font-medium">{{ route.get('id', 'N/A') }}</span>
                     </div>
                 </div>
-                {% if 'color' in route %}
                     <div class="md:col-span-6 bg-gray-50 p-2 rounded-md">
                         <div class="flex justify-between items-center">
                             <span class="text-gray-600">线路颜色</span>
                             <div class="flex items-center">
-                                <div class="w-4 h-4 rounded-full mr-2 color-box" data-color="{{ route['color'] }}"></div>
-                                <span class="font-medium">#{{ '{:06x}'.format(route['color']) }}</span>
+                                <div class="w-4 h-4 rounded-full mr-2 color-box" data-color="{{ route.get('color', '') }}"></div>
+                                <span class="font-medium">
+                                    {% if route.get('color') %}
+                                        #{{ '{:06x}'.format(route['color']) }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </span>
                             </div>
                         </div>
                     </div>
-                {% endif %}
             <!--线路类型 + 状态：各占3列（四栏效果） -->
-                {% if 'type' in route %}
                 <div class="md:col-span-3 bg-gray-50 p-2 rounded-md">
                     <div class="flex justify-between items-center">
                         <span class="text-gray-600">线路类型</span>
                         <span class="font-medium">
-                            {% if route['type'] == 'train_normal' %}
+                            {% set route_type = route.get('type', 'N/A') %}
+                            {% if route_type == 'train_normal' %}
                                 列车
-                            {% elif route['type'] == 'train_high_speed' %}
+                            {% elif route_type == 'train_high_speed' %}
                                 高铁
-                            {% elif route['type'] == 'train_light_rail' %}
+                            {% elif route_type == 'train_light_rail' %}
                                 轻轨
-                            {% elif route['type'] == 'boat_normal' %}
+                            {% elif route_type == 'boat_normal' %}
                                 轮渡
-                            {% elif route['type'] == 'boat_light_rail' %}
+                            {% elif route_type == 'boat_light_rail' %}
                                 邮轮
-                            {% elif route['type'] == 'boat_high_speed' %}
+                            {% elif route_type == 'boat_high_speed' %}
                                 快船
-                            {% elif route['type'] == 'cable_car_normal' %}
+                            {% elif route_type == 'cable_car_normal' %}
                                 缆车
-                            {% elif route['type'] == 'airplane_normal' %}
+                            {% elif route_type == 'airplane_normal' %}
                                 飞机
-                            {% elif route['type'] == 'walk' %}
+                            {% elif route_type == 'walk' %}
                                 步行
                             {% else %}
-                                {{ route['type'] }}
+                                {{ route_type }}
                             {% endif %}
                         </span>
                     </div>
                 </div>
-                {% endif %}
                 <div class="md:col-span-3 bg-gray-50 p-2 rounded-md">
                     <div class="flex justify-between items-center">
                         <span class="text-gray-600">状态</span>

@@ -36,13 +36,9 @@
         if (branchesDiv.classList.contains('hidden')) {
             branchesDiv.classList.remove('hidden');
             icon.style.transform = 'rotate(180deg)';
-            icon.classList.remove('fa-chevron-down');
-            icon.classList.add('fa-chevron-up');
         } else {
             branchesDiv.classList.add('hidden');
             icon.style.transform = 'rotate(0deg)';
-            icon.classList.remove('fa-chevron-up');
-            icon.classList.add('fa-chevron-down');
         }
     }
     
@@ -54,20 +50,16 @@
         if (connectionsDiv.classList.contains('hidden')) {
             connectionsDiv.classList.remove('hidden');
             icon.style.transform = 'rotate(180deg)';
-            icon.classList.remove('fa-chevron-down');
-            icon.classList.add('fa-chevron-up');
         } else {
             connectionsDiv.classList.add('hidden');
             icon.style.transform = 'rotate(0deg)';
-            icon.classList.remove('fa-chevron-up');
-            icon.classList.add('fa-chevron-down');
         }
     }
     
     // 全部展开交路列表
     function expandAllBranches() {
-        // 获取所有交路列表容器
-        const branchesDivs = document.querySelectorAll('[id^="branches-"]');
+        // 获取所有交路列表容器（只选择div元素，不选择图标）
+        const branchesDivs = document.querySelectorAll('div[id^="branches-"]');
         
         branchesDivs.forEach(div => {
             // 展开列表
@@ -78,17 +70,14 @@
             if (icon) {
                 // 旋转图标
                 icon.style.transform = 'rotate(180deg)';
-                // 切换图标类
-                icon.classList.remove('fa-chevron-down');
-                icon.classList.add('fa-chevron-up');
             }
         });
     }
     
     // 全部收起交路列表
     function collapseAllBranches() {
-        // 获取所有交路列表容器
-        const branchesDivs = document.querySelectorAll('[id^="branches-"]');
+        // 获取所有交路列表容器（只选择div元素，不选择图标）
+        const branchesDivs = document.querySelectorAll('div[id^="branches-"]');
         
         branchesDivs.forEach(div => {
             // 收起列表
@@ -99,9 +88,6 @@
             if (icon) {
                 // 旋转图标
                 icon.style.transform = 'rotate(0deg)';
-                // 切换图标类
-                icon.classList.remove('fa-chevron-up');
-                icon.classList.add('fa-chevron-down');
             }
         });
     }
@@ -135,37 +121,37 @@
                         <span class="font-medium">{{ station.get('id', 'N/A') }}</span>
                     </div>
                 </div>
-                {% if 'color' in station %}
                 <div class="md:col-span-6 bg-gray-50 p-2 rounded-md">
                     <div class="flex justify-between items-center">
                         <span class="text-gray-600">车站颜色</span>
                         <div class="flex items-center">
-                            <div class="w-4 h-4 rounded-full mr-2 color-box" data-color="{{ station['color'] }}"></div>
-                            <span class="font-medium">#{{ '{:06x}'.format(station['color']) }}</span>
+                            <div class="w-4 h-4 rounded-full mr-2 color-box" data-color="{{ station.get('color', '') }}"></div>
+                            <span class="font-medium">
+                                {% if station.get('color') %}
+                                    #{{ '{:06x}'.format(station['color']) }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </span>
                         </div>
                     </div>
                 </div>
-                {% endif %}
 
             <!--收费区域编号 + 坐标（各占3列） -->
-                {% if 'zone1' in station %}
                 <div class="md:col-span-3 bg-gray-50 p-2 rounded-md">
                     <div class="flex justify-between items-center">
                         <span class="text-gray-600">收费区域编号</span>
                         <span class="font-medium">
-                            ({{ station['zone1'] }}, {{ station.get('zone2', 0) }}, {{ station.get('zone3', 0) }})
+                            ({{ station.get('zone1', 0) }}, {{ station.get('zone2', 0) }}, {{ station.get('zone3', 0) }})
                         </span>
                     </div>
                 </div>
-                {% endif %}
-                {% if 'x' in station and 'z' in station %}
                 <div class="md:col-span-3 bg-gray-50 p-2 rounded-md">
                     <div class="flex justify-between items-center">
                         <span class="text-gray-600">坐标</span>
-                        <span class="font-medium">X: {{ station['x']|round(0)|int }}, Z: {{ station['z']|round(0)|int }}</span>
+                        <span class="font-medium">X: {{ station.get('x', 0)|round(0)|int }}, Z: {{ station.get('z', 0)|round(0)|int }}</span>
                     </div>
                 </div>
-                {% endif %}
             
             <!--站台数 + 连接车站数 + 经过线路数 + 经过交路数（各占3列） -->
                 <div class="md:col-span-3 bg-gray-50 p-2 rounded-md">
@@ -184,14 +170,12 @@
                         </span>
                     </div>
                 </div>
-                {% if 'connections' in station %}
                 <div class="md:col-span-3 bg-gray-50 p-2 rounded-md">
                     <div class="flex justify-between items-center">
                         <span class="text-gray-600">连接车站数</span>
-                        <span class="font-medium">{{ station['connections']|length }}</span>
+                        <span class="font-medium">{{ station.get('connections', [])|length }}</span>
                     </div>
                 </div>
-                {% endif %}
                 <div class="md:col-span-3 bg-gray-50 p-2 rounded-md">
                     <div class="flex justify-between items-center">
                         <span class="text-gray-600">经过线路数</span>
@@ -262,30 +246,29 @@
                         </h4>
                     </div>
                     <div class="flex items-center space-x-2">
-                        {% if 'type' in group.main_route %}
                         <span class="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">
-                            {% if group.main_route['type'] == 'train_normal' %}
+                            {% set route_type = group.main_route.get('type', 'N/A') %}
+                            {% if route_type == 'train_normal' %}
                                 列车
-                            {% elif group.main_route['type'] == 'train_high_speed' %}
+                            {% elif route_type == 'train_high_speed' %}
                                 高铁
-                            {% elif group.main_route['type'] == 'train_light_rail' %}
+                            {% elif route_type == 'train_light_rail' %}
                                 轻轨
-                            {% elif group.main_route['type'] == 'boat_normal' %}
+                            {% elif route_type == 'boat_normal' %}
                                 轮渡
-                            {% elif group.main_route['type'] == 'boat_light_rail' %}
+                            {% elif route_type == 'boat_light_rail' %}
                                 邮轮
-                            {% elif group.main_route['type'] == 'boat_high_speed' %}
+                            {% elif route_type == 'boat_high_speed' %}
                                 快船
-                            {% elif group.main_route['type'] == 'cable_car_normal' %}
+                            {% elif route_type == 'cable_car_normal' %}
                                 缆车
-                            {% elif group.main_route['type'] == 'airplane_normal' %}
+                            {% elif route_type == 'airplane_normal' %}
                                 飞机
                             {% else %}
-                                {{ group.main_route['type'] }}
+                                {{ route_type }}
                             {% endif %}
                         </span>
-                        {% endif %}
-                        <i class="fa fa-chevron-up text-gray-400 transition-transform duration-300" id="branches-icon-{{ loop.index }}"></i>
+                        <i class="fa fa-chevron-down text-gray-400 transition-transform duration-300" id="branches-icon-{{ loop.index }}" style="transform: rotate(180deg);"></i>
                     </div>
                 </div>
                 
