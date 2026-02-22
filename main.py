@@ -66,6 +66,51 @@ def load_config():
             # 使用配置文件的内容更新默认配置，确保所有默认字段都存在
             config.update(config_file)
     
+    # 从环境变量加载配置，优先级最高
+    for key, default_value in default_config.items():
+        # 直接使用配置项名称作为环境变量名，不添加前缀
+        env_key = key
+        env_value = os.environ.get(env_key)
+        
+        if env_value is not None:
+            # 根据默认值类型进行类型转换
+            if isinstance(default_value, bool):
+                # 布尔值处理
+                config[key] = env_value.lower() in ('true', '1', 'yes', 'y')
+            elif isinstance(default_value, int):
+                # 整数处理
+                try:
+                    config[key] = int(env_value)
+                except ValueError:
+                    print(f"Warning: Environment variable {env_key} is not a valid integer, using default value")
+            elif isinstance(default_value, float):
+                # 浮点数处理
+                try:
+                    config[key] = float(env_value)
+                except ValueError:
+                    print(f"Warning: Environment variable {env_key} is not a valid float, using default value")
+            elif isinstance(default_value, list):
+                # 数组处理，支持JSON数组格式或逗号分隔格式
+                try:
+                    # 尝试解析为JSON数组
+                    config[key] = json.loads(env_value)
+                    if not isinstance(config[key], list):
+                        raise ValueError("Not a list")
+                except (ValueError, json.JSONDecodeError):
+                    # 尝试按逗号分隔处理
+                    config[key] = [item.strip() for item in env_value.split(',')]
+            elif isinstance(default_value, dict):
+                # 对象处理，需要JSON格式
+                try:
+                    config[key] = json.loads(env_value)
+                    if not isinstance(config[key], dict):
+                        raise ValueError("Not a dictionary")
+                except (ValueError, json.JSONDecodeError):
+                    print(f"Warning: Environment variable {env_key} is not a valid JSON object, using default value")
+            else:
+                # 字符串处理，直接使用
+                config[key] = env_value
+    
     return config
 
 # 保存配置

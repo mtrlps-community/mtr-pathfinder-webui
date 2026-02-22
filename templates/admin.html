@@ -50,7 +50,7 @@
                     <label class="block text-gray-700 font-medium mb-2" for="link-input">
                         <i class="fa fa-link mr-1"></i> 地图链接 (LINK)
                     </label>
-                    <textarea id="link-input" class="form-input" placeholder="输入MTR地图链接">{{ config['LINK'] }}</textarea>
+                    <textarea id="link-input" class="form-input" placeholder="输入MTR模组在线线路图网址">{{ config['LINK'] }}</textarea>
                 </div>
                 
                 <!-- MTR版本设置 -->
@@ -72,7 +72,7 @@
                     <label class="block text-gray-700 font-medium mb-2" for="max-wild-blocks">
                         <i class="fa fa-map-marker mr-1"></i> 最大越野距离 (MAX_WILD_BLOCKS)
                     </label>
-                    <p class="text-sm text-gray-500 mb-2">从A站到B站，非出站换乘（越野）的最远步行距离，默认值为1500</p>
+                    <p class="text-sm text-gray-500 mb-2">两个站点之间非出站换乘（越野）的最远步行距离，默认值为1500</p>
                     <input type="number" id="max-wild-blocks" class="form-input" value="{{ config['MAX_WILD_BLOCKS'] }}" min="0">
                 </div>
                 
