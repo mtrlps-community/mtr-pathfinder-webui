@@ -120,110 +120,102 @@
     <!-- 车站基本信息 -->
     <div class="mb-8">
         <h3 class="text-xl font-semibold mb-4">基本信息</h3>
-        
-        <!-- 第一行：2列 -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div class="bg-gray-50 p-2 rounded-md">
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-600">车站名称</span>
-                    <span class="font-medium">{{ station.get('name', 'N/A') }}</span>
-                </div>
-            </div>
-            <div class="bg-gray-50 p-2 rounded-md">
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-600">车站ID</span>
-                    <span class="font-medium">{{ station.get('id', 'N/A') }}</span>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 第二行：2列 -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            {% if 'color' in station %}
-            <div class="bg-gray-50 p-2 rounded-md">
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-600">车站颜色</span>
-                    <div class="flex items-center">
-                        <div class="w-4 h-4 rounded-full mr-2 color-box" data-color="{{ station['color'] }}"></div>
-                        <span class="font-medium">#{{ '{:06x}'.format(station['color']) }}</span>
+        <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <!--车站名称 + 车站ID + 车站颜色（各占6列） -->
+                <div class="md:col-span-6 bg-gray-50 p-2 rounded-md">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">车站名称</span>
+                        <span class="font-medium">{{ station.get('name', 'N/A') }}</span>
                     </div>
                 </div>
-            </div>
-            {% endif %}
-            {% if 'x' in station and 'z' in station %}
-            <div class="bg-gray-50 p-2 rounded-md">
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-600">坐标</span>
-                    <span class="font-medium">X: {{ station['x']|round(0)|int }}, Z: {{ station['z']|round(0)|int }}</span>
+                <div class="md:col-span-6 bg-gray-50 p-2 rounded-md">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">车站ID</span>
+                        <span class="font-medium">{{ station.get('id', 'N/A') }}</span>
+                    </div>
                 </div>
-            </div>
-            {% endif %}
-        </div>
-        
-        <!-- 第三行：2列 -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            {% if 'zone1' in station %}
-            <div class="bg-gray-50 p-2 rounded-md">
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-600">收费区域编号</span>
-                    <span class="font-medium">
-                        ({{ station['zone1'] }}, {{ station.get('zone2', 0) }}, {{ station.get('zone3', 0) }})
-                    </span>
+                {% if 'color' in station %}
+                <div class="md:col-span-6 bg-gray-50 p-2 rounded-md">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">车站颜色</span>
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 rounded-full mr-2 color-box" data-color="{{ station['color'] }}"></div>
+                            <span class="font-medium">#{{ '{:06x}'.format(station['color']) }}</span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            {% endif %}
-            <div class="bg-gray-50 p-2 rounded-md">
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-600">站台数</span>
-                    <span class="font-medium">
-                        {% set unique_platforms = namespace(platforms=[]) %}
-                        {% for group in grouped_routes %}
-                            {% for route in group.routes %}
-                                {% if 'current_platform' in route and route['current_platform'] not in unique_platforms.platforms %}
-                                    {% set _ = unique_platforms.platforms.append(route['current_platform']) %}
-                                {% endif %}
+                {% endif %}
+
+            <!--收费区域编号 + 坐标（各占3列） -->
+                {% if 'zone1' in station %}
+                <div class="md:col-span-3 bg-gray-50 p-2 rounded-md">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">收费区域编号</span>
+                        <span class="font-medium">
+                            ({{ station['zone1'] }}, {{ station.get('zone2', 0) }}, {{ station.get('zone3', 0) }})
+                        </span>
+                    </div>
+                </div>
+                {% endif %}
+                {% if 'x' in station and 'z' in station %}
+                <div class="md:col-span-3 bg-gray-50 p-2 rounded-md">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">坐标</span>
+                        <span class="font-medium">X: {{ station['x']|round(0)|int }}, Z: {{ station['z']|round(0)|int }}</span>
+                    </div>
+                </div>
+                {% endif %}
+            
+            <!--站台数 + 连接车站数 + 经过线路数 + 经过交路数（各占3列） -->
+                <div class="md:col-span-3 bg-gray-50 p-2 rounded-md">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">站台数</span>
+                        <span class="font-medium">
+                            {% set unique_platforms = namespace(platforms=[]) %}
+                            {% for group in grouped_routes %}
+                                {% for route in group.routes %}
+                                    {% if 'current_platform' in route and route['current_platform'] not in unique_platforms.platforms %}
+                                        {% set _ = unique_platforms.platforms.append(route['current_platform']) %}
+                                    {% endif %}
+                                {% endfor %}
                             {% endfor %}
-                        {% endfor %}
-                        {{ unique_platforms.platforms|length }}
-                    </span>
+                            {{ unique_platforms.platforms|length }}
+                        </span>
+                    </div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- 第四行：3列 -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {% if 'connections' in station %}
-            <div class="bg-gray-50 p-2 rounded-md">
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-600">连接车站数</span>
-                    <span class="font-medium">{{ station['connections']|length }}</span>
+                {% if 'connections' in station %}
+                <div class="md:col-span-3 bg-gray-50 p-2 rounded-md">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">连接车站数</span>
+                        <span class="font-medium">{{ station['connections']|length }}</span>
+                    </div>
                 </div>
-            </div>
-            {% endif %}
-            <div class="bg-gray-50 p-2 rounded-md">
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-600">经过线路数</span>
-                    <span class="font-medium">{{ grouped_routes|length }}</span>
+                {% endif %}
+                <div class="md:col-span-3 bg-gray-50 p-2 rounded-md">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">经过线路数</span>
+                        <span class="font-medium">{{ grouped_routes|length }}</span>
+                    </div>
                 </div>
-            </div>
-            <div class="bg-gray-50 p-2 rounded-md">
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-600">经过交路数</span>
-                    <span class="font-medium">
-                        {% set total_branches = namespace(value=0) %}
-                        {% for group in grouped_routes %}
-                            {% set total_branches.value = total_branches.value + group.routes|length %}
-                        {% endfor %}
-                        {{ total_branches.value }}
-                    </span>
+                <div class="md:col-span-3 bg-gray-50 p-2 rounded-md">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">经过交路数</span>
+                        <span class="font-medium">
+                            {% set total_branches = namespace(value=0) %}
+                            {% for group in grouped_routes %}
+                                {% set total_branches.value = total_branches.value + group.routes|length %}
+                            {% endfor %}
+                            {{ total_branches.value }}
+                        </span>
+                    </div>
                 </div>
-            </div>
         </div>
     </div>
     
     <!-- 连接车站 -->
     {% if connected_stations %}
-    <div class="mb-8">
+    <div class="mb-8 mt-8">
         <div class="flex justify-between items-center cursor-pointer mb-2" onclick="toggleConnections()">
             <h3 class="text-xl font-semibold">连接车站</h3>
             <i class="fa fa-chevron-down text-gray-400 transition-transform duration-300" id="connections-icon"></i>
@@ -243,6 +235,7 @@
     
     <!-- 经过车站的线路 -->
     {% if grouped_routes %}
+    <div class="mb-8 mt-8">
     <div>
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-semibold">经过线路</h3>

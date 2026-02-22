@@ -137,6 +137,25 @@ def stations():
                         # 将线路添加到车站的routes列表中
                         station_id_map[station_id]['routes'].append(route)
     
+    # 计算每个车站的线路数量（去重）和交路数量
+    for station in stations_data:
+        if isinstance(station, dict) and 'routes' in station:
+            # 交路数量 = routes列表长度
+            station['branch_count'] = len(station['routes'])
+            
+            # 线路数量 = 不同线路名称的数量
+            line_names = set()
+            for route in station['routes']:
+                if isinstance(route, dict) and 'name' in route:
+                    # 提取线路主名称（去除交路编号）
+                    route_name = route['name']
+                    if '||' in route_name:
+                        main_name = route_name.split('||')[0].strip()
+                    else:
+                        main_name = route_name.strip()
+                    line_names.add(main_name)
+            station['line_count'] = len(line_names)
+    
     # 将车站名称中的竖杠替换为空格
     for station in stations_data:
         if isinstance(station, dict) and 'name' in station:
@@ -478,6 +497,53 @@ def route_detail(route_id):
                 processed_stations.append(processed_station)
         # 更新线路的站点列表
         route_data['stations'] = processed_stations
+    
+    # 计算总运行时间
+    if durations:
+        total_runtime_seconds = sum(durations)
+        total_runtime_hours = int(total_runtime_seconds // 3600)
+        total_runtime_minutes = int((total_runtime_seconds % 3600) // 60)
+        total_runtime_remaining_seconds = int(total_runtime_seconds % 60)
+        
+        if total_runtime_hours > 0:
+            route_data['total_runtime'] = f"{total_runtime_hours}:{total_runtime_minutes:02d}:{total_runtime_remaining_seconds:02d}"
+        else:
+            route_data['total_runtime'] = f"{total_runtime_minutes:02d}:{total_runtime_remaining_seconds:02d}"
+    else:
+        route_data['total_runtime'] = "00:00"
+    
+    # 读取interval数据文件，获取发车间隔
+    interval_data = {}
+    interval_file_path = config['INTERVAL_PATH_V3']
+    if os.path.exists(interval_file_path):
+        with open(interval_file_path, 'r', encoding='utf-8') as f:
+            interval_data = json.load(f)
+    
+    # 提取车厂信息（如果线路数据中包含）
+    if 'depots' in route_data and isinstance(route_data['depots'], list) and route_data['depots']:
+        # 车厂信息是一个数组，取第一个元素
+        route_data['depot'] = route_data['depots'][0]
+    else:
+        route_data['depot'] = '未知'
+    
+    # 查找当前线路的发车间隔，使用线路完整名称作为键
+    route_full_name = route_data.get('name', '')
+    route_data['interval'] = interval_data.get(route_full_name, '未知')
+    
+    # 如果找到的是数字，转换为可读格式（秒 -> mm:ss 或 h:mm:ss）
+    if isinstance(route_data['interval'], int):
+        total_seconds = route_data['interval']
+        hours = int(total_seconds // 3600)
+        remaining_seconds = int(total_seconds % 3600)
+        minutes = int(remaining_seconds // 60)
+        seconds = int(remaining_seconds % 60)
+        
+        if hours > 0:
+            # 超过一小时，格式为 h:mm:ss
+            route_data['interval'] = f"{hours}:{minutes:02d}:{seconds:02d}"
+        else:
+            # 不足一小时，格式为 mm:ss
+            route_data['interval'] = f"{minutes:02d}:{seconds:02d}"
     
     # 查找所有同名线路的交路
     same_name_routes = []

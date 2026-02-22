@@ -16,6 +16,7 @@
                 <option value="name">按名称排序</option>
                 <option value="id">按ID排序</option>
                 <option value="lines">按线路数量排序</option>
+                <option value="branches">按交路数量排序</option>
             </select>
             <button id="sort-direction" class="btn-secondary">
                 <i class="fa fa-sort-amount-asc"></i>
@@ -31,6 +32,7 @@
                     <th class="col-id py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b whitespace-nowrap">ID</th>
                     <th class="col-name py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b">名称</th>
                     <th class="col-lines py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b whitespace-nowrap">线路数量</th>
+                    <th class="col-lines py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b whitespace-nowrap">交路数量</th>
                 </tr>
             </thead>
             <tbody id="station-table-body">
@@ -46,7 +48,10 @@
                                 </a>
                             </td>
                             <td class="col-lines py-3 px-4 border-b text-sm text-gray-600 whitespace-nowrap">
-                                {{ station.get('routes', [])|length }}
+                                {{ station.get('line_count', 0) }}
+                            </td>
+                            <td class="col-lines py-3 px-4 border-b text-sm text-gray-600 whitespace-nowrap">
+                                {{ station.get('branch_count', 0) }}
                             </td>
                         </tr>
                     {% endfor %}
@@ -113,7 +118,7 @@
         if (!filteredStations || filteredStations.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="3" class="py-12 text-center text-gray-500">
+                    <td colspan="4" class="py-12 text-center text-gray-500">
                         <i class="fa fa-search text-4xl mb-2"></i>
                         <p>未找到匹配的车站</p>
                     </td>
@@ -131,7 +136,10 @@
                         </a>
                     </td>
                     <td class="col-lines py-3 px-4 border-b text-sm text-gray-600 whitespace-nowrap">
-                        ${station.routes ? station.routes.length : 0}
+                        ${station.line_count || 0}
+                    </td>
+                    <td class="col-lines py-3 px-4 border-b text-sm text-gray-600 whitespace-nowrap">
+                        ${station.branch_count || 0}
                     </td>
                 </tr>
             `).join('');
@@ -215,9 +223,13 @@
                 let aVal, bVal;
                 
                 if (sortField === 'lines') {
-                    // 按线路数量排序，假设每个车站的routes属性包含经过该车站的线路列表
-                    aVal = a.routes ? a.routes.length : 0;
-                    bVal = b.routes ? b.routes.length : 0;
+                    // 按线路数量排序
+                    aVal = a.line_count || 0;
+                    bVal = b.line_count || 0;
+                } else if (sortField === 'branches') {
+                    // 按交路数量排序
+                    aVal = a.branch_count || 0;
+                    bVal = b.branch_count || 0;
                 } else {
                     // 按名称或ID排序
                     aVal = a[sortField] || '';
