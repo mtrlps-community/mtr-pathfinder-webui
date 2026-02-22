@@ -263,10 +263,33 @@ def routes():
         with open(interval_file_path, 'r', encoding='utf-8') as f:
             interval_data = json.load(f)
     
-    # 将线路名称中的竖杠替换为空格
+    # 处理线路名称，将名称和交路编号分开
+    import re
     for route in routes_data:
         if isinstance(route, dict) and 'name' in route:
-            route['name'] = route['name'].replace('|', ' ')
+            route_name = route['name']
+            # 检查是否包含双竖杠分隔符
+            if '||' in route_name:
+                # 分割线路名称和交路编号
+                name_parts = route_name.split('||')
+                # 将名称中的单个竖杠替换为空格
+                route['name'] = name_parts[0].strip().replace('|', ' ')
+                # 处理交路编号
+                if len(name_parts) > 1:
+                    route_number = name_parts[1].strip()
+                    # 移除JSON调试信息（大括号包裹的内容）
+                    route_number = re.sub(r'\{.*?\}', '', route_number)
+                    # 将单个竖杠替换为空格
+                    route_number = route_number.replace('|', ' ')
+                    # 去除多余空格
+                    route_number = ' '.join(route_number.split())
+                    route['route_number'] = route_number
+                else:
+                    route['route_number'] = ''
+            else:
+                # 没有交路编号，只保留名称
+                route['name'] = route_name.strip().replace('|', ' ')
+                route['route_number'] = ''
     
     return render_template('routes.html', routes=routes_data, interval_data=interval_data)
 

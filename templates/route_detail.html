@@ -174,22 +174,22 @@
                 </a>
                 <div class="flex space-x-4">
                     <div class="flex items-center station-platform">
-                        <span class="text-gray-600 text-xs">停靠站台:</span>
+                        <span class="text-gray-600 text-xs">站台</span>
                         <span class="text-gray-800 text-xs ml-1">{{ station.get('platform', 'N/A') }}</span>
                     </div>
                     <div class="flex items-center station-dwell-time">
-                        <span class="text-gray-600 text-xs">停站时长:</span>
+                        <span class="text-gray-600 text-xs">停站</span>
                         <span class="text-gray-800 text-xs ml-1">{{ station.get('dwell_time', '00:00') }}</span>
                     </div>
                     <div class="flex items-center station-total-time">
-                        <span class="text-gray-600 text-xs">累计运行时间:</span>
+                        <span class="text-gray-600 text-xs">累计运行</span>
                         <span class="text-gray-800 text-xs ml-1">{{ station.get('total_time', '00:00') }}</span>
                     </div>
                 </div>
             </div>
             {% if not loop.last and station.get('travel_time') %}
             <div class="flex justify-end mt-1 station-travel-time">
-                <span class="text-gray-500 text-xs">运行时间: {{ station['travel_time'] }}</span>
+                <span class="text-gray-500 text-xs">运行 {{ station['travel_time'] }}</span>
             </div>
             {% endif %}
             {% endfor %}
