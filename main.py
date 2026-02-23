@@ -420,7 +420,19 @@ def routes():
                 route['name'] = route_name.strip().replace('|', ' ')
                 route['route_number'] = ''
     
-    return render_template('routes.html', routes=routes_data, interval_data=interval_data)
+    # 计算线路总数和交路总数，模仿车站详情页的统计逻辑
+    # 交路总数 = 所有线路的数量
+    branch_count = len(routes_data)
+    
+    # 线路总数 = 不同线路主名称的数量（去除交路编号）
+    line_names = set()
+    for route in routes_data:
+        if isinstance(route, dict) and 'name' in route:
+            # 提取线路主名称（这里已经处理过，直接使用name字段）
+            line_names.add(route['name'])
+    line_count = len(line_names)
+    
+    return render_template('routes.html', routes=routes_data, interval_data=interval_data, line_count=line_count, branch_count=branch_count)
 
 @app.route('/routes/<route_id>')
 def route_detail(route_id):

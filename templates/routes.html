@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="card">
-    <h2 class="text-2xl font-bold mb-6">线路列表</h2>
+    <h2 class="text-2xl font-bold mb-6">线路列表 <span class="text-sm text-gray-500 font-normal">（共 {{ line_count }} 条线路，{{ branch_count }} 条交路）</span></h2>
     
     <!-- 搜索、筛选和列选择 -->
     <div class="space-y-4 mb-6">
@@ -33,17 +33,17 @@
         <table class="min-w-full" style="background-color: var(--card-bg); border: 1px solid var(--border-color);">
             <thead>
                 <tr>
-                    <th class="col-id whitespace-nowrap">ID</th>
+                    <th class="col-id whitespace-nowrap" style="width: 150px;">ID</th>
                     <th class="col-name">名称</th>
                     <th class="col-route-number" style="width: 225px; word-wrap: break-word; word-break: break-all;">交路名称</th>
-                    <th class="col-stations whitespace-nowrap">站点数量</th>
+                    <th class="col-stations whitespace-nowrap" style="width: 100px;">站点数量</th>
                 </tr>
             </thead>
             <tbody id="route-table-body">
                 {% if routes %}
                     {% for route in routes %}
                         <tr>
-                            <td class="col-id">
+                            <td class="col-id whitespace-nowrap" style="width: 150px;">
                                 {{ route.get('id', 'N/A') }}
                             </td>
                             <td class="col-name font-medium">
@@ -52,9 +52,12 @@
                                 </a>
                             </td>
                             <td class="col-route-number" style="width: 225px; word-wrap: break-word; word-break: break-all;">
+                                {% if route.get('number') %}
+                                    <span class="text-xs px-2 py-0.5 rounded-full mr-2" style="background-color: var(--bg-primary); color: var(--text-primary);">{{ route.get('number') }}</span>
+                                {% endif %}
                                 {{ route.get('route_number', '') }}
                             </td>
-                            <td class="col-stations whitespace-nowrap">
+                            <td class="col-stations whitespace-nowrap" style="width: 100px;">
                                 {{ route.get('stations', [])|length }}
                             </td>
                         </tr>
@@ -94,11 +97,18 @@
     let filteredRoutes = [...routesData];
     let sortField = 'default';
     let sortDirection = 'asc';
+    // 控制是否显示所有线路
+    let showAllRoutes = false;
+    // 每页显示数量
+    const routesPerPage = 100;
     
     // 简化版搜索功能 - 只搜索线路名称
     function searchRoutes() {
         const searchInput = document.getElementById('route-search');
         const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        
+        // 重置显示所有线路标志
+        showAllRoutes = false;
         
         if (!query) {
             // 搜索词为空，显示所有线路
@@ -127,16 +137,21 @@
         if (!filteredRoutes || filteredRoutes.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="4" class="py-12 text-center text-gray-500">
-                        <i class="fa-solid fa-search text-3xl mb-2"></i>
-                        <p>未找到匹配的线路</p>
+                    <td colspan="4" class="py-12 text-center" style="color: var(--text-tertiary);">
+                        <i class="fa-solid fa-search text-3xl mb-2" style="color: var(--text-tertiary);"></i>
+                        <p style="color: var(--text-secondary);">未找到匹配的线路</p>
                     </td>
                 </tr>
             `;
         } else {
-            tbody.innerHTML = filteredRoutes.map(route => `
+            // 确定要显示的线路数量
+            const displayCount = showAllRoutes ? filteredRoutes.length : Math.min(routesPerPage, filteredRoutes.length);
+            const routesToDisplay = filteredRoutes.slice(0, displayCount);
+            
+            // 生成表格行
+            let rows = routesToDisplay.map(route => `
                 <tr>
-                    <td class="col-id">
+                    <td class="col-id whitespace-nowrap">
                         ${route.id || 'N/A'}
                     </td>
                     <td class="col-name font-medium">
@@ -144,7 +159,8 @@
                             ${route.name || 'N/A'}
                         </a>
                     </td>
-                    <td class="col-route-number" style="width: 120px; word-wrap: break-word; word-break: break-all;">
+                    <td class="col-route-number" style="width: 225px; word-wrap: break-word; word-break: break-all;">
+                        ${route.number ? `<span class="text-xs px-2 py-0.5 rounded-full mr-2" style="background-color: var(--bg-primary); color: var(--text-primary);">${route.number}</span>` : ''}
                         ${route.route_number || ''}
                     </td>
                     <td class="col-stations whitespace-nowrap">
@@ -152,6 +168,30 @@
                     </td>
                 </tr>
             `).join('');
+            
+            // 如果还有剩余线路，添加展开按钮
+            if (filteredRoutes.length > routesPerPage && !showAllRoutes) {
+                rows += `
+                    <tr>
+                        <td colspan="4" class="py-4 text-center">
+                            <button id="expand-routes-btn" class="btn-secondary">
+                                <i class="fa-solid fa-chevron-down mr-1"></i> 展开剩余 ${filteredRoutes.length - routesPerPage} 条交路
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            tbody.innerHTML = rows;
+            
+            // 添加展开按钮事件监听器
+            const expandBtn = document.getElementById('expand-routes-btn');
+            if (expandBtn) {
+                expandBtn.addEventListener('click', () => {
+                    showAllRoutes = true;
+                    renderTable();
+                });
+            }
         }
     }
     
@@ -205,6 +245,9 @@
             filteredRoutes = [];
             return;
         }
+        
+        // 重置显示所有线路标志
+        showAllRoutes = false;
         
         // 如果选择默认排序
         if (sortField === 'default') {

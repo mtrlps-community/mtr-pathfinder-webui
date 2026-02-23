@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="card">
-    <h2 class="text-2xl font-bold mb-6">车站列表</h2>
+    <h2 class="text-2xl font-bold mb-6">车站列表 <span class="text-sm text-gray-500 font-normal">（共 {{ stations|length }} 个车站）</span></h2>
     
     <!-- 搜索和排序 -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
@@ -39,7 +39,7 @@
                 {% if stations %}
                     {% for station in stations %}
                         <tr>
-                            <td class="col-id whitespace-nowrap">
+                            <td class="col-id whitespace-nowrap" style="width: 150px;">
                                 {{ station.get('id', 'N/A') }}
                             </td>
                             <td class="col-name font-medium">
@@ -47,10 +47,10 @@
                                     {{ station.get('name', 'N/A') }}
                                 </a>
                             </td>
-                            <td class="col-lines whitespace-nowrap">
+                            <td class="col-lines whitespace-nowrap" style="width: 100px;">
                                 {{ station.get('line_count', 0) }}
                             </td>
-                            <td class="col-lines whitespace-nowrap">
+                            <td class="col-lines whitespace-nowrap" style="width: 100px;">
                                 {{ station.get('branch_count', 0) }}
                             </td>
                         </tr>
@@ -80,11 +80,18 @@
     let filteredStations = [...stationsData];
     let sortField = 'default';
     let sortDirection = 'asc';
+    // 控制是否显示所有车站
+    let showAllStations = false;
+    // 每页显示数量
+    const stationsPerPage = 100;
     
     // 搜索功能
     function searchStations() {
         const searchInput = document.getElementById('station-search');
         const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        
+        // 重置显示所有车站标志
+        showAllStations = false;
         
         if (!query) {
             // 搜索词为空，显示所有车站
@@ -116,18 +123,23 @@
         }
         
         if (!filteredStations || filteredStations.length === 0) {
-            tbody.innerHTML = `
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="py-12 text-center" style="color: var(--text-tertiary);">
+                            <i class="fa-solid fa-search text-3xl mb-2" style="color: var(--text-tertiary);"></i>
+                            <p style="color: var(--text-secondary);">未找到匹配的车站</p>
+                        </td>
+                    </tr>
+                `;
+            } else {
+            // 确定要显示的车站数量
+            const displayCount = showAllStations ? filteredStations.length : Math.min(stationsPerPage, filteredStations.length);
+            const stationsToDisplay = filteredStations.slice(0, displayCount);
+            
+            // 生成表格行
+            let rows = stationsToDisplay.map(station => `
                 <tr>
-                    <td colspan="4" class="py-12 text-center text-gray-500">
-                        <i class="fa-solid fa-search text-3xl mb-2"></i>
-                        <p>未找到匹配的车站</p>
-                    </td>
-                </tr>
-            `;
-        } else {
-            tbody.innerHTML = filteredStations.map(station => `
-                <tr>
-                    <td class="col-id whitespace-nowrap">
+                    <td class="col-id whitespace-nowrap" style="width: 150px;">
                         ${station.id || 'N/A'}
                     </td>
                     <td class="col-name font-medium">
@@ -135,14 +147,38 @@
                             ${station.name || 'N/A'}
                         </a>
                     </td>
-                    <td class="col-lines whitespace-nowrap">
+                    <td class="col-lines whitespace-nowrap" style="width: 100px;">
                         ${station.line_count || 0}
                     </td>
-                    <td class="col-lines whitespace-nowrap">
+                    <td class="col-lines whitespace-nowrap" style="width: 100px;">
                         ${station.branch_count || 0}
                     </td>
                 </tr>
             `).join('');
+            
+            // 如果还有剩余车站，添加展开按钮
+            if (filteredStations.length > stationsPerPage && !showAllStations) {
+                rows += `
+                    <tr>
+                        <td colspan="4" class="py-4 text-center">
+                            <button id="expand-stations-btn" class="btn-secondary">
+                                <i class="fa-solid fa-chevron-down mr-1"></i> 展开剩余 ${filteredStations.length - stationsPerPage} 个车站
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            tbody.innerHTML = rows;
+            
+            // 添加展开按钮事件监听器
+            const expandBtn = document.getElementById('expand-stations-btn');
+            if (expandBtn) {
+                expandBtn.addEventListener('click', () => {
+                    showAllStations = true;
+                    renderTable();
+                });
+            }
         }
     }
     
@@ -190,6 +226,9 @@
             filteredStations = [];
             return;
         }
+        
+        // 重置显示所有车站标志
+        showAllStations = false;
         
         // 如果选择默认排序
         if (sortField === 'default') {

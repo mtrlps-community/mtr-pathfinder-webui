@@ -250,6 +250,37 @@
         statusDiv.classList.remove('hidden');
     }
     
+    // 页面加载完成后添加事件监听器
+    document.addEventListener('DOMContentLoaded', function() {
+        // 1. 登录页面：密码输入框按回车提交表单
+        const passwordInput = document.getElementById('password');
+        if (passwordInput) {
+            passwordInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation(); // 阻止事件冒泡
+                    this.form.submit();
+                }
+            });
+        }
+        
+        // 2. 控制台页面：所有输入框按回车保存配置
+        const saveButton = document.getElementById('save-all');
+        if (saveButton) {
+            // 获取所有输入框元素，包括带有form-input类的元素
+            const inputElements = document.querySelectorAll('input, textarea');
+            inputElements.forEach(input => {
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        e.stopPropagation(); // 阻止事件冒泡
+                        saveButton.click();
+                    }
+                });
+            });
+        }
+    });
+    
     // MTR版本滑动选择器逻辑
     document.querySelectorAll('.algorithm-tab').forEach(tab => {
         tab.addEventListener('click', () => {
