@@ -712,12 +712,11 @@
             <div class="flex items-center space-x-2">
                 <i class="fa-solid fa-train text-blue-500 text-xl"></i>
                 <h1 class="text-xl font-bold" style="color: var(--text-primary);">MTR Pathfinder</h1>
+                <!-- 深色模式切换按钮 -->
+                <button id="theme-toggle" class="text-gray-600 hover:text-gray-800 focus:outline-none ml-2" style="color: var(--text-secondary);">
+                    <i class="fa-solid fa-moon text-lg"></i>
+                </button>
             </div>
-            
-            <!-- 深色模式切换按钮 -->
-            <button id="theme-toggle" class="text-gray-600 hover:text-gray-800 focus:outline-none mr-4 md:mr-0" style="color: var(--text-secondary);">
-                <i class="fa-solid fa-moon text-lg"></i>
-            </button>
             
             <!-- 汉堡菜单按钮 -->
             <button class="mobile-menu-button md:hidden text-gray-600 hover:text-gray-800 focus:outline-none" style="color: var(--text-secondary);">
@@ -849,48 +848,81 @@
             const themeToggle = document.getElementById('theme-toggle');
             const body = document.body;
             
-            // 检查本地存储中的主题偏好
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme) {
-                body.classList.toggle('dark-mode', savedTheme === 'dark');
-                updateThemeIcon(themeToggle, savedTheme === 'dark');
-            } else {
-                // 默认根据系统主题偏好设置
-                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                body.classList.toggle('dark-mode', prefersDark);
-                updateThemeIcon(themeToggle, prefersDark);
+            // 主题状态：light, dark, auto
+            let currentTheme = localStorage.getItem('theme') || 'light';
+            
+            // 获取系统主题媒体查询
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            
+            // 更新主题显示
+            function updateThemeDisplay() {
+                // 移除所有主题相关的类和图标
+                body.classList.remove('dark-mode');
+                
+                const icon = themeToggle.querySelector('i');
+                icon.classList.remove('fa-moon', 'fa-sun', 'fa-circle-half-stroke');
+                
+                let isDark = false;
+                
+                if (currentTheme === 'auto') {
+                    // 自动模式：根据系统主题
+                    isDark = mediaQuery.matches;
+                    icon.classList.add('fa-circle-half-stroke');
+                } else if (currentTheme === 'dark') {
+                    // 深色模式
+                    isDark = true;
+                    icon.classList.add('fa-sun');
+                } else {
+                    // 浅色模式
+                    isDark = false;
+                    icon.classList.add('fa-moon');
+                }
+                
+                // 设置主题类
+                if (isDark) {
+                    body.classList.add('dark-mode');
+                }
+            }
+            
+            // 系统主题变化监听函数
+            function handleSystemThemeChange(e) {
+                // 只有在自动模式下，才跟随系统主题变化
+                if (currentTheme === 'auto') {
+                    updateThemeDisplay();
+                }
             }
             
             // 主题切换按钮点击事件
             if (themeToggle) {
                 themeToggle.addEventListener('click', function() {
-                    // 切换body的dark-mode类
-                    body.classList.toggle('dark-mode');
+                    // 循环切换主题：light → dark → auto → light
+                    switch (currentTheme) {
+                        case 'light':
+                            currentTheme = 'dark';
+                            break;
+                        case 'dark':
+                            currentTheme = 'auto';
+                            break;
+                        case 'auto':
+                            currentTheme = 'light';
+                            break;
+                        default:
+                            currentTheme = 'light';
+                    }
                     
-                    // 检查当前主题
-                    const isDark = body.classList.contains('dark-mode');
-                    
-                    // 更新图标
-                    updateThemeIcon(themeToggle, isDark);
+                    // 更新主题显示
+                    updateThemeDisplay();
                     
                     // 保存主题偏好到本地存储
-                    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                    localStorage.setItem('theme', currentTheme);
                 });
             }
             
-            // 更新主题图标函数
-            function updateThemeIcon(button, isDark) {
-                const icon = button.querySelector('i');
-                if (icon) {
-                    if (isDark) {
-                        icon.classList.remove('fa-moon');
-                        icon.classList.add('fa-sun');
-                    } else {
-                        icon.classList.remove('fa-sun');
-                        icon.classList.add('fa-moon');
-                    }
-                }
-            }
+            // 设置初始主题
+            updateThemeDisplay();
+            
+            // 添加系统主题变化监听器
+            mediaQuery.addEventListener('change', handleSystemThemeChange);
         });
     </script>
     </body>
