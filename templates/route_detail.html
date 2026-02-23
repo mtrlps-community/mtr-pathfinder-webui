@@ -64,7 +64,7 @@
             <!-- 折叠菜单标题栏 -->
             <div class="flex justify-between items-center bg-gray-50 p-2 rounded-md cursor-pointer" onclick="toggleRoutesList()">
                 <h3 class="text-gray-600">交路列表</h3>
-                <i class="fas fa-chevron-down text-gray-500 transition-transform duration-300" id="routes-list-icon"></i>
+                <i class="fa-solid fa-chevron-down text-gray-500 transition-transform duration-300" id="routes-list-icon"></i>
             </div>
             <!-- 交路列表内容，默认收起 -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3" id="routes-list-content" style="display: none;">
@@ -277,7 +277,7 @@
     </div>
     {% else %}
     <div class="bg-gray-50 p-6 rounded-md text-center">
-        <i class="fas fa-train text-4xl text-gray-400 mb-2"></i>
+        <i class="fa-solid fa-train text-3xl text-gray-400 mb-2"></i>
         <p class="text-gray-500">该线路未关联任何站点</p>
     </div>
     {% endif %}

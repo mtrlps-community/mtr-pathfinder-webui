@@ -9,20 +9,20 @@
         
         {% if error %}
         <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-            <i class="fas fa-exclamation-circle mr-2"></i>{{ error }}
+            <i class="fa-solid fa-exclamation-circle mr-2"></i>{{ error }}
         </div>
         {% endif %}
         
         <form method="post" action="/admin">
             <div class="mb-4">
                 <label class="block text-gray-700 font-medium mb-2" for="password">
-                    <i class="fas fa-lock mr-1"></i> 密码
+                    <i class="fa-solid fa-lock mr-1"></i> 密码
                 </label>
                 <input type="password" id="password" name="password" class="form-input" placeholder="输入控制台密码" required>
             </div>
             
             <button type="submit" class="btn-primary w-full">
-                <i class="fas fa-right-to-bracket mr-2"></i> 登录
+                <i class="fa-solid fa-right-to-bracket mr-2"></i> 登录
             </button>
         </form>
     </div>
@@ -38,7 +38,7 @@
                 <h2 class="text-2xl font-bold">系统配置</h2>
                 <form method="post" action="/admin/logout" style="display: inline;">
                     <button type="submit" class="btn-secondary text-sm">
-                        <i class="fas fa-right-from-bracket mr-1"></i> 退出登录
+                        <i class="fa-solid fa-right-from-bracket mr-1"></i> 退出登录
                     </button>
                 </form>
             </div>
@@ -48,7 +48,7 @@
                 <!-- 地图链接设置 -->
                 <div>
                     <label class="block text-gray-700 font-medium mb-2" for="link-input">
-                        <i class="fas fa-link mr-1"></i> 地图链接 (LINK)
+                        <i class="fa-solid fa-link mr-1"></i> 地图链接 (LINK)
                     </label>
                     <textarea id="link-input" class="form-input" placeholder="输入MTR模组在线线路图网址">{{ config['LINK'] }}</textarea>
                 </div>
@@ -56,7 +56,7 @@
                 <!-- MTR版本设置 -->
                 <div>
                     <label class="block text-gray-700 font-medium mb-2" for="mtr-ver-select">
-                        <i class="fas fa-code-fork mr-1"></i> MTR模组版本 (MTR_VER)
+                        <i class="fa-solid fa-code-fork mr-1"></i> MTR模组版本 (MTR_VER)
                     </label>
                     <div class="algorithm-tabs">
                         <div class="flex overflow-x-auto no-scrollbar">
@@ -70,7 +70,7 @@
                 <!-- 最大越野距离 -->
                 <div>
                     <label class="block text-gray-700 font-medium mb-2" for="max-wild-blocks">
-                        <i class="fas fa-map-marker-alt mr-1"></i> 最大越野距离 (MAX_WILD_BLOCKS)
+                        <i class="fa-solid fa-map-marker-alt mr-1"></i> 最大越野距离 (MAX_WILD_BLOCKS)
                     </label>
                     <p class="text-sm text-gray-500 mb-2">两个站点之间非出站换乘（越野）的最远步行距离，默认值为1500</p>
                     <input type="number" id="max-wild-blocks" class="form-input" value="{{ config['MAX_WILD_BLOCKS'] }}" min="0">
@@ -79,7 +79,7 @@
                 <!-- 出站换乘增加 -->
                 <div>
                     <label class="block text-gray-700 font-medium mb-2" for="transfer-addition">
-                        <i class="fas fa-right-left mr-1"></i> 出站换乘定义 (TRANSFER_ADDITION)
+                        <i class="fa-solid fa-right-left mr-1"></i> 出站换乘定义 (TRANSFER_ADDITION)
                     </label>
                     <p class="text-sm text-gray-500 mb-2">手动增加出站换乘，格式："车站": ["出站换乘的车站", ...], ...</p>
                     <textarea id="transfer-addition" class="form-input" placeholder='JSON格式，例如：{"车站1": ["车站2", "车站3"], "车站4": ["车站5"]}'>{{ config['TRANSFER_ADDITION']|tojson }}</textarea>
@@ -88,7 +88,7 @@
                 <!-- 非出站换乘增加 -->
                 <div>
                     <label class="block text-gray-700 font-medium mb-2" for="wild-addition">
-                        <i class="fas fa-tree mr-1"></i> 非出站换乘定义 (WILD_ADDITION)
+                        <i class="fa-solid fa-tree mr-1"></i> 非出站换乘定义 (WILD_ADDITION)
                     </label>
                     <p class="text-sm text-gray-500 mb-2">手动增加非出站换乘（越野），格式："车站": ["非出站换乘的车站", ...], ...</p>
                     <textarea id="wild-addition" class="form-input" placeholder='JSON格式，例如：{"车站1": ["车站2", "车站3"], "车站4": ["车站5"]}'>{{ config['WILD_ADDITION']|tojson }}</textarea>
@@ -97,7 +97,7 @@
                 <!-- 车站名称映射 -->
                 <div>
                     <label class="block text-gray-700 font-medium mb-2" for="station-table">
-                        <i class="fas fa-table mr-1"></i> 车站名称映射 (STATION_TABLE)
+                        <i class="fa-solid fa-table mr-1"></i> 车站名称映射 (STATION_TABLE)
                     </label>
                     <p class="text-sm text-gray-500 mb-2">车站昵称到实际名称的映射，格式："车站昵称": "车站实际名称", ...</p>
                     <textarea id="station-table" class="form-input" placeholder='JSON格式，例如：{"车站昵称": "车站实际名称", "昵称2": "实际名称2"}'>{{ config['STATION_TABLE']|tojson }}</textarea>
@@ -106,7 +106,7 @@
                 <!-- 禁止乘坐的路线 -->
                 <div>
                     <label class="block text-gray-700 font-medium mb-2" for="original-ignored-lines">
-                        <i class="fas fa-ban mr-1"></i> 全局禁路线 (ORIGINAL_IGNORED_LINES)
+                        <i class="fa-solid fa-ban mr-1"></i> 全局禁路线 (ORIGINAL_IGNORED_LINES)
                     </label>
                     <p class="text-sm text-gray-500 mb-2">未开通或禁止乘坐的路线列表，格式：["线路1", "线路2", ...]</p>
                     <textarea id="original-ignored-lines" class="form-input" placeholder='JSON格式数组，例如：["线路1", "线路2"]'>{{ config['ORIGINAL_IGNORED_LINES']|tojson }}</textarea>
@@ -115,7 +115,7 @@
                 <!-- Umami统计脚本URL -->
                 <div>
                     <label class="block text-gray-700 font-medium mb-2" for="umami-script-url">
-                        <i class="fas fa-chart-bar mr-1"></i> Umami脚本URL (UMAMI_SCRIPT_URL)
+                        <i class="fa-solid fa-chart-bar mr-1"></i> Umami脚本URL (UMAMI_SCRIPT_URL)
                     </label>
                     <p class="text-sm text-gray-500 mb-2">Umami统计脚本的URL，例如：https://cloud.umami.is/script.js</p>
                     <textarea id="umami-script-url" class="form-input" placeholder="输入Umami脚本URL">{{ config['UMAMI_SCRIPT_URL'] }}</textarea>
@@ -124,7 +124,7 @@
                 <!-- Umami网站ID -->
                 <div>
                     <label class="block text-gray-700 font-medium mb-2" for="umami-website-id">
-                        <i class="fas fa-id-card mr-1"></i> Umami网站ID (UMAMI_WEBSITE_ID)
+                        <i class="fa-solid fa-id-card mr-1"></i> Umami网站ID (UMAMI_WEBSITE_ID)
                     </label>
                     <p class="text-sm text-gray-500 mb-2">Umami统计的网站ID，例如：12345678-1234-1234-1234-123456789012</p>
                     <textarea id="umami-website-id" class="form-input" placeholder="输入Umami网站ID">{{ config['UMAMI_WEBSITE_ID'] }}</textarea>
@@ -136,16 +136,16 @@
                 <div>
                     <div class="flex space-x-3">
                         <button id="save-all" class="btn-primary">
-                            <i class="fas fa-save mr-2"></i> 保存配置
+                            <i class="fa-solid fa-save mr-2"></i> 保存配置
                         </button>
                         <button id="update-data" class="btn-green">
-                            <i class="fas fa-rotate-right mr-2"></i> 更新数据
+                            <i class="fa-solid fa-rotate-right mr-2"></i> 更新数据
                         </button>
                         <button id="clear-cache" class="btn-red">
-                            <i class="fas fa-trash mr-2"></i> 清除寻路缓存
+                            <i class="fa-solid fa-trash mr-2"></i> 清除寻路缓存
                         </button>
                         <button id="clear-images" class="btn-red">
-                            <i class="fas fa-image mr-2"></i> 清除结果图片
+                            <i class="fa-solid fa-image mr-2"></i> 清除结果图片
                         </button>
                     </div>
                     
@@ -380,7 +380,7 @@
     document.getElementById('update-data').addEventListener('click', async () => {
         const btn = document.getElementById('update-data');
         const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> 更新中...';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> 更新中...';
         btn.disabled = true;
         
         // 隐藏之前的状态消息
@@ -427,7 +427,7 @@
     document.getElementById('clear-cache').addEventListener('click', async () => {
         const btn = document.getElementById('clear-cache');
         const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> 清除中...';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> 清除中...';
         btn.disabled = true;
         
         try {
@@ -457,7 +457,7 @@
     document.getElementById('clear-images').addEventListener('click', async () => {
         const btn = document.getElementById('clear-images');
         const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> 清除中...';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> 清除中...';
         btn.disabled = true;
         
         try {

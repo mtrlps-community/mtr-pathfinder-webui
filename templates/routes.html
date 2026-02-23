@@ -10,7 +10,7 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div class="relative w-full md:w-64">
                 <textarea id="route-search" placeholder="搜索线路名称" class="form-input pl-10"></textarea>
-                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
             </div>
             <div class="flex space-x-2">
                 <select id="route-sort" class="form-input">
@@ -20,7 +20,7 @@
                     <option value="stations">按站点数量排序</option>
                 </select>
                 <button id="route-sort-direction" class="btn-secondary">
-                    <i class="fas fa-sort-amount-asc"></i>
+                    <i class="fa-solid fa-sort-amount-asc"></i>
                 </button>
             </div>
         </div>
@@ -62,7 +62,7 @@
                 {% else %}
                     <tr>
                         <td colspan="3" class="py-12 text-center text-gray-500">
-                            <i class="fas fa-train text-4xl mb-2"></i>
+                            <i class="fa-solid fa-train text-3xl mb-2"></i>
                             <p>暂无线路数据，请先在控制台更新数据</p>
                         </td>
                     </tr>
@@ -128,7 +128,7 @@
             tbody.innerHTML = `
                 <tr>
                     <td colspan="4" class="py-12 text-center text-gray-500">
-                        <i class="fas fa-search text-4xl mb-2"></i>
+                        <i class="fa-solid fa-search text-3xl mb-2"></i>
                         <p>未找到匹配的线路</p>
                     </td>
                 </tr>
@@ -190,7 +190,7 @@
                 // 只更新内部i元素的className，而不是整个按钮
                 const icon = e.target.querySelector('i') || e.target;
                 if (icon) {
-                    icon.className = `fas fa-sort-amount-${sortDirection === 'asc' ? 'asc' : 'desc'}`;
+                    icon.className = `fa-solid fa-sort-amount-${sortDirection === 'asc' ? 'asc' : 'desc'}`;
                 }
                 sortRoutes();
             });
