@@ -780,6 +780,14 @@ def api_find_route():
                 'message': '正在使用实时算法计算路径...'
             })
             
+            # 处理出发时间参数
+            dep_time_seconds = data.get('dep_time')
+            client_time = data.get('client_time')
+            
+            # 如果dep_time_seconds为None且提供了客户端时间，使用客户端时间+10秒作为出发时间
+            if dep_time_seconds is None and client_time is not None:
+                dep_time_seconds = (client_time + 10) % 86400
+            
             # 调用v4版程序的main函数，获取路线详情
             result = mtr_main_v4(
                 station1=data['start'],
@@ -806,7 +814,8 @@ def api_find_route():
                 DETAIL=False,
                 MAX_HOUR=config['MAX_HOUR'],
                 gen_image=False,
-                show=False
+                show=False,
+                departure_time=dep_time_seconds
             )
             
             # 更新进度
@@ -1156,6 +1165,14 @@ def api_generate_image():
         
         # 根据算法选择不同的寻路实现
         if algorithm == 'real':
+            # 处理出发时间参数
+            dep_time_seconds = data.get('dep_time')
+            client_time = data.get('client_time')
+            
+            # 如果dep_time_seconds为None且提供了客户端时间，使用客户端时间+10秒作为出发时间
+            if dep_time_seconds is None and client_time is not None:
+                dep_time_seconds = (client_time + 10) % 86400
+            
             # 使用v4版程序生成图片
             result = mtr_main_v4(
                 station1=data['start'],
@@ -1182,7 +1199,8 @@ def api_generate_image():
                 DETAIL=data.get('detail', True),
                 MAX_HOUR=config['MAX_HOUR'],
                 gen_image=True,
-                show=False
+                show=False,
+                departure_time=dep_time_seconds
             )
         else:
             # 使用v3版程序生成图片
