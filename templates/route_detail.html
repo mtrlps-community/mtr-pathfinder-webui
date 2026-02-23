@@ -123,19 +123,37 @@
         <div class="space-y-4">
             <!-- 使用12列网格系统实现灵活布局 -->
             <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-            <!-- 交路名称 + 线路ID + 线路颜色：各占6列（两栏效果） -->
-                <div class="md:col-span-6 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
+            <!-- 交路名称：占6列（两栏效果） -->
+             <div class="md:col-span-6 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
                     <div class="flex justify-between items-center">
                         <span style="color: var(--text-secondary);">交路名称</span>
                         <span class="font-medium" style="color: var(--text-primary);">{{ route.get('route_number', '无') }}</span>
                     </div>
                 </div>
+                <!-- 根据是否有交路编号动态调整列宽 -->
+                {% if route.get('number') and route.get('number') != '' %}
+                <!-- 有交路编号：交路名称2栏，线路ID4栏 -->
+                <div class="md:col-span-2 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
+                    <div class="flex justify-between items-center">
+                        <span style="color: var(--text-secondary);">交路编号</span>
+                        <span class="font-medium" style="color: var(--text-primary);">{{ route.get('number') }}</span>
+                    </div>
+                </div>
+                <div class="md:col-span-4 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
+                    <div class="flex justify-between items-center">
+                        <span style="color: var(--text-secondary);">线路ID</span>
+                        <span class="font-medium" style="color: var(--text-primary);">{{ route.get('id', 'N/A') }}</span>
+                    </div>
+                </div>
+                {% else %}
+                <!-- 无交路编号：线路ID6栏 -->
                 <div class="md:col-span-6 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
                     <div class="flex justify-between items-center">
                         <span style="color: var(--text-secondary);">线路ID</span>
                         <span class="font-medium" style="color: var(--text-primary);">{{ route.get('id', 'N/A') }}</span>
                     </div>
                 </div>
+                {% endif %}
                     <div class="md:col-span-6 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
                         <div class="flex justify-between items-center">
                             <span style="color: var(--text-secondary);">线路颜色</span>

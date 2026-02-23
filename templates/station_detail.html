@@ -285,6 +285,11 @@
                                         {% else %}
                                             主线
                                         {% endif %}
+                                        {% if 'number' in route and route['number'] %}
+                                            <span class="ml-2 text-xs px-2 py-0.5 rounded-full" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">
+                                                {{ route['number'] }}
+                                            </span>
+                                        {% endif %}
                                     </a>
                                 </h5>
                                 {% if route.get('stations') and route.get('stations')|length >= 2 %}
@@ -304,27 +309,22 @@
                         
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
                             <div>
-                                <span class="text-gray-600">线路ID:</span> {{ route.get('id', 'N/A') }}
+                                <span style="color: var(--text-tertiary);">线路ID:</span> {{ route.get('id', 'N/A') }}
                             </div>
                             <div>
-                                <span class="text-gray-600">站点数量:</span> {{ route.get('stations', [])|length }}
+                                <span style="color: var(--text-tertiary);">站点数量:</span> {{ route.get('stations', [])|length }}
                             </div>
                             <div>
-                                <span class="text-gray-600">状态:</span> 
+                                <span style="color: var(--text-tertiary);">状态:</span> 
                                 {% if route.get('hidden', False) %}
                                     <span class="text-red-600">隐藏</span>
                                 {% else %}
                                     <span class="text-green-600">显示</span>
                                 {% endif %}
                             </div>
-                            {% if 'number' in route and route['number'] %}
-                            <div>
-                                <span class="text-gray-600">线路编号:</span> {{ route['number'] }}
-                            </div>
-                            {% endif %}
                             {% if 'circularState' in route and route['circularState'] != 'NONE' %}
                             <div>
-                                <span class="text-gray-600">环线状态:</span> {{ route['circularState'] }}
+                                <span style="color: var(--text-tertiary);">环线状态:</span> {{ route['circularState'] }}
                             </div>
                             {% endif %}
                         </div>
