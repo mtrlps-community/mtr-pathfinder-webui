@@ -7,10 +7,10 @@
         <!-- 简码功能 -->
         <div class="card mb-6">
             <div class="flex items-center mb-2">
-                <label class="block text-gray-700 font-medium mr-2" for="shortcode">
+                <label class="block font-medium mr-2" for="shortcode" style="color: var(--text-primary);">
                     <i class="fa-solid fa-code mr-1"></i> 简码输入
                 </label>
-                <button type="button" class="text-blue-500 text-sm hover:underline" id="shortcode-help">
+                <button type="button" class="text-sm hover:underline" id="shortcode-help" style="color: var(--accent-primary);">
                     格式说明
                 </button>
             </div>
@@ -19,29 +19,29 @@
             </div>
             <!-- 简码格式说明弹窗 -->
             <div id="shortcode-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div class="bg-white p-6 rounded-lg max-w-lg w-full mx-4">
-                    <h3 class="text-xl font-bold mb-4">简码格式说明</h3>
-                    <div class="space-y-4">
+                <div class="bg-white p-6 rounded-lg max-w-lg w-full mx-4" style="background-color: var(--card-bg); color: var(--text-primary);">
+                    <h3 class="text-xl font-bold mb-4" style="color: var(--text-primary);">简码格式说明</h3>
+                    <div class="space-y-4 max-h-[250px] md:max-h-[350px] lg:max-h-[400px] overflow-y-auto pr-2">
                         <div>
-                            <h4 class="font-semibold mb-2">调用格式：</h4>
-                            <p class="bg-gray-100 p-3 rounded break-all">/路线 <出发站>;<到达站>;[详细];[理论];[越野];[禁高铁];[禁船];[仅轻铁];[禁路线;<路线>;<路线> ...];[仅路线;<路线>;<路线> ...];[禁车站;<车站>;<车站> ...]</p>
+                            <h4 class="font-semibold mb-2" style="color: var(--text-primary);">调用格式：</h4>
+                            <p class="bg-gray-100 p-3 rounded break-all" style="background-color: var(--bg-tertiary); color: var(--text-primary);">/路线 <出发站>;<到达站>;[详细];[理论];[越野];[禁高铁];[禁船];[仅轻铁];[禁路线;<路线>;<路线> ...];[仅路线;<路线>;<路线> ...];[禁车站;<车站>;<车站> ...]</p>
                         </div>
                         <div>
-                            <h4 class="font-semibold mb-2">其他参数：</h4>
-                            <ul class="list-disc pl-5 space-y-2">
-                                <li><strong>默认</strong> -> 实际能坐的最快路线（计算等车时间），以图片形式输出寻路结果</li>
-                                <li><strong>实时</strong> -> 实时寻路（仅适用于MTR 4.0服务器）</li>
-                                <li><strong>详细</strong> -> 输出详细信息，包括线路间隔以及每一站的等车时间</li>
-                                <li><strong>理论</strong> -> 理论最快路线，不考虑线路上是否有车在跑</li>
-                                <li><strong>越野</strong> -> 允许在两个车站间步行，最大范围为 1500 格</li>
-                                <li><strong>禁路线</strong> -> 禁止使用指定路线，可添加多条路线</li>
-                                <li><strong>仅路线</strong> -> 只能使用指定路线，可添加多条路线</li>
-                                <li><strong>禁车站</strong> -> 禁止经过指定车站，可添加多个车站</li>
+                            <h4 class="font-semibold mb-2" style="color: var(--text-primary);">其他参数：</h4>
+                            <ul class="list-disc pl-5 space-y-2" style="color: var(--text-secondary);">
+                                <li><strong style="color: var(--text-primary);">默认</strong> -> 实际能坐的最快路线（计算等车时间），以图片形式输出寻路结果</li>
+                                <li><strong style="color: var(--text-primary);">实时</strong> -> 实时寻路（仅适用于MTR 4.0服务器）</li>
+                                <li><strong style="color: var(--text-primary);">详细</strong> -> 输出详细信息，包括线路间隔以及每一站的等车时间</li>
+                                <li><strong style="color: var(--text-primary);">理论</strong> -> 理论最快路线，不考虑线路上是否有车在跑</li>
+                                <li><strong style="color: var(--text-primary);">越野</strong> -> 允许在两个车站间步行，最大范围为 1500 格</li>
+                                <li><strong style="color: var(--text-primary);">禁路线</strong> -> 禁止使用指定路线，可添加多条路线</li>
+                                <li><strong style="color: var(--text-primary);">仅路线</strong> -> 只能使用指定路线，可添加多条路线</li>
+                                <li><strong style="color: var(--text-primary);">禁车站</strong> -> 禁止经过指定车站，可添加多个车站</li>
                             </ul>
                         </div>
                         <div>
-                            <h4 class="font-semibold mb-2">注意事项：</h4>
-                            <ul class="list-disc pl-5 space-y-2">
+                            <h4 class="font-semibold mb-2" style="color: var(--text-primary);">注意事项：</h4>
+                            <ul class="list-disc pl-5 space-y-2" style="color: var(--text-secondary);">
                                 <li>&lt;&gt; 必填，[] 选填</li>
                                 <li>“；”和“;”（全角和半角分号） 都可以使用</li>
                             </ul>
@@ -111,29 +111,29 @@
                     <h3 class="text-lg font-semibold mb-3">寻路选项</h3>
                     
                     <div class="route-settings flex flex-wrap gap-4">
-                        <label class="flex items-center p-2 bg-gray-100 rounded-md cursor-pointer hover:bg-gray-200 transition-colors">
-                            <input type="checkbox" id="disable-high-speed" name="disable_high_speed" class="form-checkbox">
-                            <span class="ml-2 text-gray-700">禁高铁</span>
+                        <label class="flex items-center p-2 rounded-md cursor-pointer transition-colors" style="background-color: var(--bg-tertiary);">
+                            <input type="checkbox" id="disable-high-speed" name="disable_high_speed" class="form-checkbox" style="accent-color: var(--accent-primary);">
+                            <span class="ml-2" style="color: var(--text-primary);">禁高铁</span>
                         </label>
                         
-                        <label class="flex items-center p-2 bg-gray-100 rounded-md cursor-pointer hover:bg-gray-200 transition-colors">
-                            <input type="checkbox" id="disable-boat" name="disable_boat" class="form-checkbox">
-                            <span class="ml-2 text-gray-700">禁船</span>
+                        <label class="flex items-center p-2 rounded-md cursor-pointer transition-colors" style="background-color: var(--bg-tertiary);">
+                            <input type="checkbox" id="disable-boat" name="disable_boat" class="form-checkbox" style="accent-color: var(--accent-primary);">
+                            <span class="ml-2" style="color: var(--text-primary);">禁船</span>
                         </label>
                         
-                        <label class="flex items-center p-2 bg-gray-100 rounded-md cursor-pointer hover:bg-gray-200 transition-colors">
-                            <input type="checkbox" id="enable-wild" name="enable_wild" class="form-checkbox">
-                            <span class="ml-2 text-gray-700">越野</span>
+                        <label class="flex items-center p-2 rounded-md cursor-pointer transition-colors" style="background-color: var(--bg-tertiary);">
+                            <input type="checkbox" id="enable-wild" name="enable_wild" class="form-checkbox" style="accent-color: var(--accent-primary);">
+                            <span class="ml-2" style="color: var(--text-primary);">越野</span>
                         </label>
                         
-                        <label class="flex items-center p-2 bg-gray-100 rounded-md cursor-pointer hover:bg-gray-200 transition-colors">
-                            <input type="checkbox" id="only-lrt" name="only_lrt" class="form-checkbox">
-                            <span class="ml-2 text-gray-700">仅轻轨</span>
+                        <label class="flex items-center p-2 rounded-md cursor-pointer transition-colors" style="background-color: var(--bg-tertiary);">
+                            <input type="checkbox" id="only-lrt" name="only_lrt" class="form-checkbox" style="accent-color: var(--accent-primary);">
+                            <span class="ml-2" style="color: var(--text-primary);">仅轻轨</span>
                         </label>
                         
-                        <label class="flex items-center p-2 bg-gray-100 rounded-md cursor-pointer hover:bg-gray-200 transition-colors">
-                            <input type="checkbox" id="detail" name="detail" class="form-checkbox">
-                            <span class="ml-2 text-gray-700">详细(仅对图片生效)</span>
+                        <label class="flex items-center p-2 rounded-md cursor-pointer transition-colors" style="background-color: var(--bg-tertiary);">
+                            <input type="checkbox" id="detail" name="detail" class="form-checkbox" style="accent-color: var(--accent-primary);">
+                            <span class="ml-2" style="color: var(--text-primary);">详细(仅对图片生效)</span>
                         </label>
                     </div>
                 </div>
@@ -187,25 +187,32 @@
                 </div>
             </div>
             
+            <!-- 初始提示状态 -->
+            <div id="initial-prompt" class="text-center py-16">
+                <i class="fa-solid fa-search text-5xl mb-4" style="color: var(--text-tertiary);"></i>
+                <h3 class="text-xl font-semibold mb-2" style="color: var(--text-secondary);">请输入寻路参数</h3>
+                <p style="color: var(--text-tertiary);">在左侧填写起点站和终点站，点击"查找路径"开始寻路</p>
+            </div>
+            
             <!-- 加载状态 -->
             <div id="loading" class="hidden py-12">
                 <div class="max-w-md mx-auto">
-                    <h3 class="text-lg font-semibold mb-4 text-center">正在计算路径</h3>
+                    <h3 class="text-lg font-semibold mb-4 text-center" style="color: var(--text-primary);">正在计算路径</h3>
                     <div class="mb-4">
-                        <div class="w-full bg-gray-200 rounded-full h-2.5 mb-2">
-                            <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                        <div class="w-full rounded-full h-2.5 mb-2" style="background-color: var(--bg-tertiary);">
+                            <div id="progress-bar" class="h-2.5 rounded-full" style="background-color: var(--accent-primary); width: 0%"></div>
                         </div>
-                        <div class="flex justify-between text-sm text-gray-600">
-                            <span id="progress-stage">准备中...</span>
-                            <span id="progress-percentage">0%</span>
+                        <div class="flex justify-between text-sm">
+                            <span id="progress-stage" style="color: var(--text-secondary);">准备中...</span>
+                            <span id="progress-percentage" style="color: var(--text-secondary);">0%</span>
                         </div>
                     </div>
-                    <div id="progress-message" class="text-center text-gray-500 text-sm"></div>
+                    <div id="progress-message" class="text-center text-sm" style="color: var(--text-tertiary);"></div>
                 </div>
             </div>
             
             <!-- 错误信息 -->
-            <div id="error" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4"></div>
+            <div id="error" class="hidden px-4 py-3 rounded mb-4" style="background-color: var(--error-bg); border: 1px solid var(--error-border); color: var(--error-text);"></div>
             
             <!-- 结果区域 -->
             <div id="result" class="hidden">
@@ -724,6 +731,24 @@
         }, 500); // 每500毫秒查询一次进度
     }
     
+    // 获取初始提示元素
+    const initialPrompt = document.getElementById('initial-prompt');
+    
+    // 重置按钮点击事件
+    const resetButton = document.querySelector('button[type="reset"]');
+    if (resetButton) {
+        resetButton.addEventListener('click', function() {
+            // 显示初始提示，隐藏所有结果相关元素
+            initialPrompt.classList.remove('hidden');
+            result.classList.add('hidden');
+            error.classList.add('hidden');
+            noResult.classList.add('hidden');
+            // 隐藏图片按钮
+            document.getElementById('view-image-btn').classList.add('hidden');
+            document.getElementById('download-image-btn').classList.add('hidden');
+        });
+    }
+    
     routeForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -731,8 +756,9 @@
         document.getElementById('view-image-btn').classList.add('hidden');
         document.getElementById('download-image-btn').classList.add('hidden');
         
-        // 显示加载状态
+        // 显示加载状态，隐藏其他状态
         loading.classList.remove('hidden');
+        initialPrompt.classList.add('hidden');
         error.classList.add('hidden');
         result.classList.add('hidden');
         noResult.classList.add('hidden');
@@ -845,7 +871,7 @@
         let timeGridContent = `
             <div class="time-grid ${algorithm === 'theory' ? 'theory-mode' : ''}">
                 <div class="time-item total-time">
-                    <div class="time-icon"><i class="fa-solid fa-clock"></i></div>
+                    <div class="time-icon"><i class="fa-regular fa-clock"></i></div>
                     <div class="time-content">
                         <strong id="total-time">${formatTime(totalTime)}</strong>
                         <span>总用时</span>
@@ -1271,7 +1297,7 @@
             // 显示乘车时长或步行时间
             const durationDiv = document.createElement('div');
             durationDiv.className = 'time-detail';
-            const timeLabel = isWalk ? '<i class="fa-solid fa-clock mr-1"></i> 步行时间' : '<i class="fa-solid fa-clock mr-1"></i> 乘车时间';
+            const timeLabel = isWalk ? '<i class="fa-regular fa-clock mr-1"></i> 步行时间' : '<i class="fa-regular fa-clock mr-1"></i> 乘车时间';
             // 实时模式使用计算的乘车时间，否则使用原始duration
             const displayRidingTime = algorithm === 'real' && lineRidingTime !== null ? lineRidingTime : duration;
             durationDiv.innerHTML = `<span>${timeLabel}</span><span class="time-value">${formatTime(displayRidingTime)}</span>`;
@@ -1513,7 +1539,7 @@
                     if (i > 0 && i < stationNames.length - 1 && lineWaitingTime > 0) {
                         const waitingTimeDiv = document.createElement('div');
                         waitingTimeDiv.className = 'time-detail';
-                        waitingTimeDiv.innerHTML = `<span><i class="fa-solid fa-clock mr-1"></i> 等车时间</span><span class="time-value">${formatTime(lineWaitingTime)}</span>`;
+                        waitingTimeDiv.innerHTML = `<span><i class="fa-solid fa-hourglass mr-1"></i> 等车时间</span><span class="time-value">${formatTime(lineWaitingTime)}</span>`;
                         routeStep.appendChild(waitingTimeDiv);
                     }
                     
@@ -1665,13 +1691,13 @@
                     const waitingDiv = document.createElement('div');
                     waitingDiv.className = 'time-detail';
                     const segmentWaitingTime = nonWalkRoutesCount > 0 ? waitingTime / nonWalkRoutesCount : 0;
-                    waitingDiv.innerHTML = `<span><i class="fa-solid fa-clock mr-1"></i> 等车时间</span><span class="time-value">${formatTime(segmentWaitingTime)}</span>`;
+                    waitingDiv.innerHTML = `<span><i class="fa-solid fa-hourglass mr-1"></i> 等车时间</span><span class="time-value">${formatTime(segmentWaitingTime)}</span>`;
                     routeInfoDiv.appendChild(waitingDiv);
                     
                     // 显示发车间隔
                     const intervalDiv = document.createElement('div');
                     intervalDiv.className = 'time-detail';
-                    intervalDiv.innerHTML = `<span><i class="fa-solid fa-clock mr-1"></i> 发车间隔</span><span class="time-value">00:00</span>`;
+                    intervalDiv.innerHTML = `<span><i class="fa-solid fa-clock-rotate-left mr-1"></i> 发车间隔</span><span class="time-value">00:00</span>`;
                     routeInfoDiv.appendChild(intervalDiv);
                 }
                 

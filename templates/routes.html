@@ -30,38 +30,38 @@
     
     <!-- 线路表格 -->
     <div class="overflow-x-auto">
-        <table class="min-w-full bg-white border border-gray-200">
+        <table class="min-w-full" style="background-color: var(--card-bg); border: 1px solid var(--border-color);">
             <thead>
-                <tr class="bg-gray-50">
-                    <th class="col-id py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b whitespace-nowrap">ID</th>
-                    <th class="col-name py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b">名称</th>
-                    <th class="col-route-number py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b" style="width: 225px; word-wrap: break-word; word-break: break-all;">交路名称</th>
-                    <th class="col-stations py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b whitespace-nowrap">站点数量</th>
+                <tr>
+                    <th class="col-id whitespace-nowrap">ID</th>
+                    <th class="col-name">名称</th>
+                    <th class="col-route-number" style="width: 225px; word-wrap: break-word; word-break: break-all;">交路名称</th>
+                    <th class="col-stations whitespace-nowrap">站点数量</th>
                 </tr>
             </thead>
             <tbody id="route-table-body">
                 {% if routes %}
                     {% for route in routes %}
-                        <tr class="hover:bg-gray-50 transition-colors">
-                            <td class="col-id py-3 px-4 border-b text-sm text-gray-600">
+                        <tr>
+                            <td class="col-id">
                                 {{ route.get('id', 'N/A') }}
                             </td>
-                            <td class="col-name py-3 px-4 border-b text-sm font-medium">
-                                <a href="/routes/{{ route.get('id', '') }}" class="text-blue-600 hover:underline transition-colors">
+                            <td class="col-name font-medium">
+                                <a href="/routes/{{ route.get('id', '') }}">
                                     {{ route.get('name', 'N/A') }}
                                 </a>
                             </td>
-                            <td class="col-route-number py-3 px-4 border-b text-sm text-gray-600" style="width: 225px; word-wrap: break-word; word-break: break-all;">
+                            <td class="col-route-number" style="width: 225px; word-wrap: break-word; word-break: break-all;">
                                 {{ route.get('route_number', '') }}
                             </td>
-                            <td class="col-stations py-3 px-4 border-b text-sm text-gray-600 whitespace-nowrap">
+                            <td class="col-stations whitespace-nowrap">
                                 {{ route.get('stations', [])|length }}
                             </td>
                         </tr>
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="3" class="py-12 text-center text-gray-500">
+                        <td colspan="4" class="py-12 text-center" style="color: var(--text-tertiary);">
                             <i class="fa-solid fa-train text-3xl mb-2"></i>
                             <p>暂无线路数据，请先在控制台更新数据</p>
                         </td>
@@ -135,19 +135,19 @@
             `;
         } else {
             tbody.innerHTML = filteredRoutes.map(route => `
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="col-id py-3 px-4 border-b text-sm text-gray-600">
+                <tr>
+                    <td class="col-id">
                         ${route.id || 'N/A'}
                     </td>
-                    <td class="col-name py-3 px-4 border-b text-sm font-medium">
-                        <a href="/routes/${route.id || ''}" class="text-blue-600 hover:underline transition-colors">
+                    <td class="col-name font-medium">
+                        <a href="/routes/${route.id || ''}">
                             ${route.name || 'N/A'}
                         </a>
                     </td>
-                    <td class="col-route-number py-3 px-4 border-b text-sm text-gray-600" style="width: 120px; word-wrap: break-word; word-break: break-all;">
+                    <td class="col-route-number" style="width: 120px; word-wrap: break-word; word-break: break-all;">
                         ${route.route_number || ''}
                     </td>
-                    <td class="col-stations py-3 px-4 border-b text-sm text-gray-600 whitespace-nowrap">
+                    <td class="col-stations whitespace-nowrap">
                         ${route.stations ? route.stations.length : 0}
                     </td>
                 </tr>

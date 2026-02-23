@@ -109,24 +109,24 @@
         <div class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
             <!--车站名称 + 车站ID + 车站颜色（各占6列） -->
-                <div class="md:col-span-6 bg-gray-50 p-2 rounded-md">
+                <div class="md:col-span-6 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600">车站名称</span>
-                        <span class="font-medium">{{ station.get('name', 'N/A') }}</span>
+                        <span style="color: var(--text-secondary);">车站名称</span>
+                        <span class="font-medium" style="color: var(--text-primary);">{{ station.get('name', 'N/A') }}</span>
                     </div>
                 </div>
-                <div class="md:col-span-6 bg-gray-50 p-2 rounded-md">
+                <div class="md:col-span-6 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600">车站ID</span>
-                        <span class="font-medium">{{ station.get('id', 'N/A') }}</span>
+                        <span style="color: var(--text-secondary);">车站ID</span>
+                        <span class="font-medium" style="color: var(--text-primary);">{{ station.get('id', 'N/A') }}</span>
                     </div>
                 </div>
-                <div class="md:col-span-6 bg-gray-50 p-2 rounded-md">
+                <div class="md:col-span-6 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600">车站颜色</span>
+                        <span style="color: var(--text-secondary);">车站颜色</span>
                         <div class="flex items-center">
                             <div class="w-4 h-4 rounded-full mr-2 color-box" data-color="{{ station.get('color', '') }}"></div>
-                            <span class="font-medium">
+                            <span class="font-medium" style="color: var(--text-primary);">
                                 {% if station.get('color') %}
                                     #{{ '{:06x}'.format(station['color']) }}
                                 {% else %}
@@ -138,26 +138,26 @@
                 </div>
 
             <!--收费区域编号 + 坐标（各占3列） -->
-                <div class="md:col-span-3 bg-gray-50 p-2 rounded-md">
+                <div class="md:col-span-3 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600">收费区域编号</span>
-                        <span class="font-medium">
+                        <span style="color: var(--text-secondary);">收费区域编号</span>
+                        <span class="font-medium" style="color: var(--text-primary);">
                             ({{ station.get('zone1', 0) }}, {{ station.get('zone2', 0) }}, {{ station.get('zone3', 0) }})
                         </span>
                     </div>
                 </div>
-                <div class="md:col-span-3 bg-gray-50 p-2 rounded-md">
+                <div class="md:col-span-3 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600">坐标</span>
-                        <span class="font-medium">X: {{ station.get('x', 0)|round(0)|int }}, Z: {{ station.get('z', 0)|round(0)|int }}</span>
+                        <span style="color: var(--text-secondary);">坐标</span>
+                        <span class="font-medium" style="color: var(--text-primary);">X: {{ station.get('x', 0)|round(0)|int }}, Z: {{ station.get('z', 0)|round(0)|int }}</span>
                     </div>
                 </div>
             
             <!--站台数 + 连接车站数 + 经过线路数 + 经过交路数（各占3列） -->
-                <div class="md:col-span-3 bg-gray-50 p-2 rounded-md">
+                <div class="md:col-span-3 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600">站台数</span>
-                        <span class="font-medium">
+                        <span style="color: var(--text-secondary);">站台数</span>
+                        <span class="font-medium" style="color: var(--text-primary);">
                             {% set unique_platforms = namespace(platforms=[]) %}
                             {% for group in grouped_routes %}
                                 {% for route in group.routes %}
@@ -170,22 +170,22 @@
                         </span>
                     </div>
                 </div>
-                <div class="md:col-span-3 bg-gray-50 p-2 rounded-md">
+                <div class="md:col-span-3 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600">连接车站数</span>
-                        <span class="font-medium">{{ station.get('connections', [])|length }}</span>
+                        <span style="color: var(--text-secondary);">连接车站数</span>
+                        <span class="font-medium" style="color: var(--text-primary);">{{ station.get('connections', [])|length }}</span>
                     </div>
                 </div>
-                <div class="md:col-span-3 bg-gray-50 p-2 rounded-md">
+                <div class="md:col-span-3 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600">经过线路数</span>
-                        <span class="font-medium">{{ grouped_routes|length }}</span>
+                        <span style="color: var(--text-secondary);">经过线路数</span>
+                        <span class="font-medium" style="color: var(--text-primary);">{{ grouped_routes|length }}</span>
                     </div>
                 </div>
-                <div class="md:col-span-3 bg-gray-50 p-2 rounded-md">
+                <div class="md:col-span-3 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600">经过交路数</span>
-                        <span class="font-medium">
+                        <span style="color: var(--text-secondary);">经过交路数</span>
+                        <span class="font-medium" style="color: var(--text-primary);">
                             {% set total_branches = namespace(value=0) %}
                             {% for group in grouped_routes %}
                                 {% set total_branches.value = total_branches.value + group.routes|length %}
@@ -201,16 +201,16 @@
     {% if connected_stations %}
     <div class="mb-8 mt-8">
         <div class="flex justify-between items-center cursor-pointer mb-2" onclick="toggleConnections()">
-            <h3 class="text-xl font-semibold">连接车站</h3>
-            <i class="fa-solid fa-chevron-down text-gray-400 transition-transform duration-300" id="connections-icon"></i>
+            <h3 class="text-xl font-semibold" style="color: var(--text-primary);">连接车站</h3>
+            <i class="fa-solid fa-chevron-down transition-transform duration-300" id="connections-icon" style="color: var(--text-tertiary);"></i>
         </div>
         <div class="flex flex-wrap gap-2 hidden" id="connections-list">
             {% for connected_station in connected_stations %}
-            <a href="/stations/{{ connected_station.id }}" class="inline-flex items-center bg-blue-50 border border-blue-100 rounded-full px-4 py-2 hover:bg-blue-100 transition-colors text-sm">
+            <a href="/stations/{{ connected_station.id }}" class="inline-flex items-center rounded-full px-4 py-2 transition-colors text-sm" style="background-color: var(--bg-tertiary); border: 1px solid var(--border-color);">
                 {% if 'color' in connected_station %}
                 <div class="w-3 h-3 rounded-full mr-2 color-box" data-color="{{ connected_station.color }}"></div>
                 {% endif %}
-                <span class="font-medium text-blue-800">{{ connected_station.name }}</span>
+                <span class="font-medium" style="color: var(--text-primary);">{{ connected_station.name }}</span>
             </a>
             {% endfor %}
         </div>
@@ -222,31 +222,31 @@
     <div class="mb-8 mt-8">
     <div>
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-semibold">经过线路</h3>
+            <h3 class="text-xl font-semibold" style="color: var(--text-primary);">经过线路</h3>
             <div class="flex gap-2">
-                <button onclick="expandAllBranches()" class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-md transition-colors">
+                <button onclick="expandAllBranches()" class="text-sm px-3 py-1 rounded-md transition-colors" style="background-color: var(--bg-tertiary); color: var(--text-secondary);" onmouseover="this.style.backgroundColor='var(--hover-bg)'" onmouseout="this.style.backgroundColor='var(--bg-tertiary)'">
                     全部展开
                 </button>
-                <button onclick="collapseAllBranches()" class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-md transition-colors">
+                <button onclick="collapseAllBranches()" class="text-sm px-3 py-1 rounded-md transition-colors" style="background-color: var(--bg-tertiary); color: var(--text-secondary);" onmouseover="this.style.backgroundColor='var(--hover-bg)'" onmouseout="this.style.backgroundColor='var(--bg-tertiary)'">
                     全部收起
                 </button>
             </div>
         </div>
         <div class="space-y-4">
             {% for group in grouped_routes %}
-            <div class="bg-white border border-gray-200 rounded-md p-4 hover:shadow-md transition-shadow">
+            <div class="rounded-md p-4 hover:shadow-md transition-shadow" style="background-color: var(--card-bg); border: 1px solid var(--border-color);">
                 <!-- 主线路信息 -->
                 <div class="flex flex-wrap justify-between items-center cursor-pointer" onclick="toggleBranches('branches-{{ loop.index }}')">
                     <div class="flex items-center">
                         {% if 'color' in group.main_route %}
                         <div class="w-4 h-4 rounded-full mr-2 color-box" data-color="{{ group.main_route['color'] }}"></div>
                         {% endif %}
-                        <h4 class="font-medium text-gray-800">
+                        <h4 class="font-medium" style="color: var(--text-primary);">
                             {{ group.main_route.get('name', 'N/A') }}
                         </h4>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <span class="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">
+                        <span class="text-xs px-2 py-1 rounded-full" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">
                             {% set route_type = group.main_route.get('type', 'N/A') %}
                             {% if route_type == 'train_normal' %}
                                 列车
@@ -268,18 +268,18 @@
                                 {{ route_type }}
                             {% endif %}
                         </span>
-                        <i class="fa-solid fa-chevron-down text-gray-400 transition-transform duration-300" id="branches-icon-{{ loop.index }}" style="transform: rotate(180deg);"></i>
+                        <i class="fa-solid fa-chevron-down transition-transform duration-300" id="branches-icon-{{ loop.index }}" style="transform: rotate(180deg); color: var(--text-tertiary);"></i>
                     </div>
                 </div>
                 
                 <!-- 交路列表 -->
                 <div class="mt-3 space-y-3" id="branches-{{ loop.index }}">
                     {% for route in group.routes %}
-                    <div class="border-l-2 border-gray-200 pl-3">
+                    <div class="border-l-2 pl-3" style="border-left-color: var(--border-color);">
                         <div class="flex flex-wrap justify-between items-center mb-2">
                             <div class="flex items-center">
                                 <h5 class="font-medium text-sm">
-                                    <a href="/routes/{{ route.get('id', '') }}" class="text-blue-600 hover:underline transition-colors">
+                                    <a href="/routes/{{ route.get('id', '') }}" style="color: var(--accent-primary);">
                                         {% if route.get('route_number') %}
                                             {{ route.get('route_number') }}
                                         {% else %}
@@ -288,14 +288,14 @@
                                     </a>
                                 </h5>
                                 {% if route.get('stations') and route.get('stations')|length >= 2 %}
-                                <span class="text-gray-500 text-xs ml-2">
+                                <span class="text-xs ml-2" style="color: var(--text-tertiary);">
                                     {{ route.stations[0].get('name', 'N/A') }} → {{ route.stations[-1].get('name', 'N/A') }}
                                 </span>
                                 {% endif %}
                             </div>
                             <div class="flex items-center space-x-2">
                                 {% if 'current_platform' in route %}
-                                <span class="bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded-full">
+                                <span class="text-xs px-2 py-1 rounded-full" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">
                                     站台 {{ route['current_platform'] }}
                                 </span>
                                 {% endif %}
@@ -333,17 +333,18 @@
                         {% if route.get('stations') %}
                         <div class="mt-2">
                             <div class="flex items-center justify-between cursor-pointer" onclick="toggleStations('stations-{{ route.get('id', '0') }}')">
-                                <span class="text-gray-600 text-xs block mb-1">站点列表</span>
-                                <i class="fa-solid fa-chevron-down text-gray-400 transition-transform duration-300" id="stations-icon-{{ route.get('id', '0') }}"></i>
+                                <span class="text-xs block mb-1" style="color: var(--text-secondary);">站点列表</span>
+                                <i class="fa-solid fa-chevron-down transition-transform duration-300" id="stations-icon-{{ route.get('id', '0') }}" style="color: var(--text-tertiary);"></i>
                             </div>
                             <div class="space-y-1 hidden" id="stations-{{ route.get('id', '0') }}">
                                 {% for station in route['stations'] %}
-                                <a href="/stations/{{ station.get('id', '') }}" class="flex items-center text-xs px-3 py-2 rounded-full transition-colors
-                                    {% if station.get('id') == station_id %}
-                                        bg-yellow-100 text-yellow-800 hover:bg-yellow-200 font-medium
-                                    {% else %}
-                                        bg-blue-50 text-blue-700 hover:bg-blue-100
-                                    {% endif %}">
+                                <a href="/stations/{{ station.get('id', '') }}" class="flex items-center text-xs px-3 py-2 rounded-full transition-colors"
+                                    style="
+                                        {% if station.get('id') == station_id %}
+                                            background-color: var(--accent-bg); color: var(--accent-primary); font-weight: medium; border: 2px solid var(--accent-primary);
+                                        {% else %}
+                                            background-color: var(--bg-tertiary); color: var(--text-primary);
+                                        {% endif %}">
                                     {{ station.get('name', 'N/A') }}
                                 </a>
                                 {% endfor %}

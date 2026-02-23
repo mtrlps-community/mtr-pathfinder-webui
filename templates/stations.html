@@ -26,38 +26,38 @@
     
     <!-- 车站表格 -->
     <div class="overflow-x-auto">
-        <table class="min-w-full bg-white border border-gray-200">
+        <table class="min-w-full" style="background-color: var(--card-bg); border: 1px solid var(--border-color);">
             <thead>
-                <tr class="bg-gray-50">
-                    <th class="col-id py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b whitespace-nowrap">ID</th>
-                    <th class="col-name py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b">名称</th>
-                    <th class="col-lines py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b whitespace-nowrap">线路数量</th>
-                    <th class="col-lines py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b whitespace-nowrap">交路数量</th>
+                <tr>
+                    <th class="col-id whitespace-nowrap">ID</th>
+                    <th class="col-name">名称</th>
+                    <th class="col-lines whitespace-nowrap">线路数量</th>
+                    <th class="col-lines whitespace-nowrap">交路数量</th>
                 </tr>
             </thead>
             <tbody id="station-table-body">
                 {% if stations %}
                     {% for station in stations %}
-                        <tr class="hover:bg-gray-50 transition-colors">
-                            <td class="col-id py-3 px-4 border-b text-sm text-gray-600 whitespace-nowrap">
+                        <tr>
+                            <td class="col-id whitespace-nowrap">
                                 {{ station.get('id', 'N/A') }}
                             </td>
-                            <td class="col-name py-3 px-4 border-b text-sm font-medium">
-                                <a href="/stations/{{ station.get('id', 'N/A') }}" class="text-blue-600 hover:underline">
+                            <td class="col-name font-medium">
+                                <a href="/stations/{{ station.get('id', 'N/A') }}">
                                     {{ station.get('name', 'N/A') }}
                                 </a>
                             </td>
-                            <td class="col-lines py-3 px-4 border-b text-sm text-gray-600 whitespace-nowrap">
+                            <td class="col-lines whitespace-nowrap">
                                 {{ station.get('line_count', 0) }}
                             </td>
-                            <td class="col-lines py-3 px-4 border-b text-sm text-gray-600 whitespace-nowrap">
+                            <td class="col-lines whitespace-nowrap">
                                 {{ station.get('branch_count', 0) }}
                             </td>
                         </tr>
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="3" class="py-12 text-center text-gray-500">
+                        <td colspan="4" class="py-12 text-center" style="color: var(--text-tertiary);">
                             <i class="fa-solid fa-map-marker-alt text-3xl mb-2"></i>
                             <p>暂无车站数据，请先在控制台更新数据</p>
                         </td>
@@ -126,19 +126,19 @@
             `;
         } else {
             tbody.innerHTML = filteredStations.map(station => `
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="col-id py-3 px-4 border-b text-sm text-gray-600 whitespace-nowrap">
+                <tr>
+                    <td class="col-id whitespace-nowrap">
                         ${station.id || 'N/A'}
                     </td>
-                    <td class="col-name py-3 px-4 border-b text-sm font-medium">
-                        <a href="/stations/${station.id || 'N/A'}" class="text-blue-600 hover:underline">
+                    <td class="col-name font-medium">
+                        <a href="/stations/${station.id || 'N/A'}">
                             ${station.name || 'N/A'}
                         </a>
                     </td>
-                    <td class="col-lines py-3 px-4 border-b text-sm text-gray-600 whitespace-nowrap">
+                    <td class="col-lines whitespace-nowrap">
                         ${station.line_count || 0}
                     </td>
-                    <td class="col-lines py-3 px-4 border-b text-sm text-gray-600 whitespace-nowrap">
+                    <td class="col-lines whitespace-nowrap">
                         ${station.branch_count || 0}
                     </td>
                 </tr>

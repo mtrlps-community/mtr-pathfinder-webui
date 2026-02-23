@@ -51,10 +51,10 @@
     <!-- 线路基本信息 -->
     <div class="mb-8">
         <!-- 线路主名称 -->
-        <div class="bg-gray-50 p-2 rounded-md mb-4">
+        <div class="p-2 rounded-md mb-4" style="background-color: var(--bg-tertiary);">
             <div class="flex justify-between items-center">
-                <span class="text-gray-600">线路名称</span>
-                <span class="text-xl font-bold">{{ route.get('main_name', route.get('name', 'N/A')) }}</span>
+                <span style="color: var(--text-secondary);">线路名称</span>
+                <span class="text-xl font-bold" style="color: var(--text-primary);">{{ route.get('main_name', route.get('name', 'N/A')) }}</span>
             </div>
         </div>
         
@@ -62,9 +62,9 @@
         {% if same_name_routes and same_name_routes|length > 1 %}
         <div class="mb-6">
             <!-- 折叠菜单标题栏 -->
-            <div class="flex justify-between items-center bg-gray-50 p-2 rounded-md cursor-pointer" onclick="toggleRoutesList()">
-                <h3 class="text-gray-600">交路列表</h3>
-                <i class="fa-solid fa-chevron-down text-gray-500 transition-transform duration-300" id="routes-list-icon"></i>
+            <div class="flex justify-between items-center p-2 rounded-md cursor-pointer" onclick="toggleRoutesList()" style="background-color: var(--bg-tertiary);">
+                <h3 style="color: var(--text-secondary);">交路列表</h3>
+                <i class="fa-solid fa-chevron-down transition-transform duration-300" id="routes-list-icon" style="color: var(--text-tertiary);"></i>
             </div>
             <!-- 交路列表内容，默认收起 -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3" id="routes-list-content" style="display: none;">
@@ -72,24 +72,24 @@
                 <!-- 检查是否是当前交路 -->
                 {% if same_route.id == route.id %}
                 <!-- 当前交路高亮显示 -->
-                <a href="/routes/{{ same_route.id }}" class="block bg-blue-200 p-2 rounded-md hover:bg-blue-300 transition-colors border-2 border-blue-400">
+                <a href="/routes/{{ same_route.id }}" class="block p-2 rounded-md transition-colors border-2" style="background-color: var(--accent-bg); border-color: var(--accent-primary);">
                     <div class="flex justify-between items-center">
                         <div class="flex-1">
-                            <div class="text-blue-900 font-semibold text-sm">{{ same_route.route_number or '无交路编号' }}</div>
+                            <div class="font-semibold text-sm" style="color: var(--accent-primary);">{{ same_route.route_number or '无交路编号' }}</div>
                         </div>
-                        <span class="ml-4 text-xs bg-gray-300 text-gray-700 px-2 py-0.5 rounded-full">
+                        <span class="ml-4 text-xs px-2 py-0.5 rounded-full" style="background-color: var(--bg-tertiary); color: var(--text-primary);">
                             {{ same_route.id }}
                         </span>
                     </div>
                 </a>
                 {% else %}
                 <!-- 其他交路 -->
-                <a href="/routes/{{ same_route.id }}" class="block bg-blue-50 p-2 rounded-md hover:bg-blue-100 transition-colors">
+                <a href="/routes/{{ same_route.id }}" class="block p-2 rounded-md transition-colors hover:opacity-80" style="background-color: var(--bg-tertiary);">
                     <div class="flex justify-between items-center">
                         <div class="flex-1">
-                            <div class="text-blue-700 font-medium text-sm">{{ same_route.route_number or '无交路编号' }}</div>
+                            <div class="font-medium text-sm" style="color: var(--text-primary);">{{ same_route.route_number or '无交路编号' }}</div>
                         </div>
-                        <span class="ml-4 text-xs bg-gray-300 text-gray-700 px-2 py-0.5 rounded-full">
+                        <span class="ml-4 text-xs px-2 py-0.5 rounded-full" style="background-color: var(--bg-primary); color: var(--text-secondary);">
                             {{ same_route.id }}
                         </span>
                     </div>
@@ -119,29 +119,29 @@
         </script>
         
         <!-- 其他基本信息 -->
-        <h3 class="text-xl font-semibold mb-4">基本信息</h3>
+        <h3 class="text-xl font-semibold mb-4" style="color: var(--text-primary);">基本信息</h3>
         <div class="space-y-4">
             <!-- 使用12列网格系统实现灵活布局 -->
             <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
             <!-- 交路名称 + 线路ID + 线路颜色：各占6列（两栏效果） -->
-                <div class="md:col-span-6 bg-gray-50 p-2 rounded-md">
+                <div class="md:col-span-6 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600">交路名称</span>
-                        <span class="font-medium">{{ route.get('route_number', '无') }}</span>
+                        <span style="color: var(--text-secondary);">交路名称</span>
+                        <span class="font-medium" style="color: var(--text-primary);">{{ route.get('route_number', '无') }}</span>
                     </div>
                 </div>
-                <div class="md:col-span-6 bg-gray-50 p-2 rounded-md">
+                <div class="md:col-span-6 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600">线路ID</span>
-                        <span class="font-medium">{{ route.get('id', 'N/A') }}</span>
+                        <span style="color: var(--text-secondary);">线路ID</span>
+                        <span class="font-medium" style="color: var(--text-primary);">{{ route.get('id', 'N/A') }}</span>
                     </div>
                 </div>
-                    <div class="md:col-span-6 bg-gray-50 p-2 rounded-md">
+                    <div class="md:col-span-6 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
                         <div class="flex justify-between items-center">
-                            <span class="text-gray-600">线路颜色</span>
+                            <span style="color: var(--text-secondary);">线路颜色</span>
                             <div class="flex items-center">
                                 <div class="w-4 h-4 rounded-full mr-2 color-box" data-color="{{ route.get('color', '') }}"></div>
-                                <span class="font-medium">
+                                <span class="font-medium" style="color: var(--text-primary);">
                                     {% if route.get('color') %}
                                         #{{ '{:06x}'.format(route['color']) }}
                                     {% else %}
@@ -152,10 +152,10 @@
                         </div>
                     </div>
             <!--线路类型 + 状态：各占3列（四栏效果） -->
-                <div class="md:col-span-3 bg-gray-50 p-2 rounded-md">
+                <div class="md:col-span-3 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600">线路类型</span>
-                        <span class="font-medium">
+                        <span style="color: var(--text-secondary);">线路类型</span>
+                        <span class="font-medium" style="color: var(--text-primary);">
                             {% set route_type = route.get('type', 'N/A') %}
                             {% if route_type == 'train_normal' %}
                                 列车
@@ -181,10 +181,10 @@
                         </span>
                     </div>
                 </div>
-                <div class="md:col-span-3 bg-gray-50 p-2 rounded-md">
+                <div class="md:col-span-3 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600">状态</span>
-                        <span class="font-medium">
+                        <span style="color: var(--text-secondary);">状态</span>
+                        <span class="font-medium" style="color: var(--text-primary);">
                             {% if route.get('hidden', False) %}
                                 <span class="text-red-600">隐藏</span>
                             {% else %}
@@ -193,30 +193,29 @@
                         </span>
                     </div>
                 </div> 
-            
             <!-- 车厂 + 发车间隔 + 站点数量 + 总运行时间：各占6列（两栏效果） -->
-                <div class="md:col-span-6 bg-gray-50 p-2 rounded-md">
+                <div class="md:col-span-6 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600">车厂</span>
-                        <span class="font-medium">{{ route.get('depot', '未知') }}</span>
+                        <span style="color: var(--text-secondary);">车厂</span>
+                        <span class="font-medium" style="color: var(--text-primary);">{{ route.get('depot', '未知') }}</span>
                     </div>
                 </div>
-                <div class="md:col-span-6 bg-gray-50 p-2 rounded-md">
+                <div class="md:col-span-6 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600">发车间隔</span>
-                        <span class="font-medium">{{ route.get('interval', '未知') }}</span>
+                        <span style="color: var(--text-secondary);">发车间隔</span>
+                        <span class="font-medium" style="color: var(--text-primary);">{{ route.get('interval', '未知') }}</span>
                     </div>
                 </div>
-                <div class="md:col-span-6 bg-gray-50 p-2 rounded-md">
+                <div class="md:col-span-6 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600">站点数量</span>
-                        <span class="font-medium">{{ route.get('stations', [])|length }}</span>
+                        <span style="color: var(--text-secondary);">站点数量</span>
+                        <span class="font-medium" style="color: var(--text-primary);">{{ route.get('stations', [])|length }}</span>
                     </div>
                 </div>
-                <div class="md:col-span-6 bg-gray-50 p-2 rounded-md">
+                <div class="md:col-span-6 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600">总运行时间</span>
-                        <span class="font-medium">{{ route.get('total_runtime', '00:00') }}</span>
+                        <span style="color: var(--text-secondary);">总运行时间</span>
+                        <span class="font-medium" style="color: var(--text-primary);">{{ route.get('total_runtime', '00:00') }}</span>
                     </div>
                 </div>
         </div>
@@ -226,59 +225,59 @@
     {% if route.get('stations') %}
     <div class="mb-8 mt-8">
         <div class="flex items-center justify-between mb-4">
-            <h3 class="text-xl font-semibold">站点列表</h3>
+            <h3 class="text-xl font-semibold" style="color: var(--text-primary);">站点列表</h3>
             <div class="flex space-x-4">
                 <label class="flex items-center text-sm">
                     <input type="checkbox" id="show-platform" class="form-checkbox" checked>
-                    <span class="ml-1 text-gray-700">停靠站台</span>
+                    <span class="ml-1" style="color: var(--text-secondary);">停靠站台</span>
                 </label>
                 <label class="flex items-center text-sm">
                     <input type="checkbox" id="show-dwell-time" class="form-checkbox" checked>
-                    <span class="ml-1 text-gray-700">停站时长</span>
+                    <span class="ml-1" style="color: var(--text-secondary);">停站时长</span>
                 </label>
                 <label class="flex items-center text-sm">
                     <input type="checkbox" id="show-total-time" class="form-checkbox" checked>
-                    <span class="ml-1 text-gray-700">累计运行时间</span>
+                    <span class="ml-1" style="color: var(--text-secondary);">累计运行时间</span>
                 </label>
                 <label class="flex items-center text-sm">
                     <input type="checkbox" id="show-travel-time" class="form-checkbox" checked>
-                    <span class="ml-1 text-gray-700">运行时间</span>
+                    <span class="ml-1" style="color: var(--text-secondary);">运行时间</span>
                 </label>
             </div>
         </div>
         <div class="space-y-1" id="stations-1">
             {% for station in route['stations'] %}
-            <div class="flex items-center justify-between bg-blue-50 p-2 rounded-lg hover:bg-blue-100 transition-colors">
-                <a href="/stations/{{ station.get('id', '') }}" class="text-blue-700 text-sm font-medium mr-4">
+            <div class="flex items-center justify-between p-2 rounded-lg transition-colors" style="background-color: var(--bg-tertiary);" onmouseover="this.style.backgroundColor='var(--hover-bg)'" onmouseout="this.style.backgroundColor='var(--bg-tertiary)'">
+                <a href="/stations/{{ station.get('id', '') }}" class="text-sm font-medium mr-4" style="color: var(--accent-primary);">
                     {{ station.get('name', 'N/A') }}
                 </a>
                 <div class="flex space-x-4">
                     <div class="flex items-center station-platform">
-                        <span class="text-gray-600 text-xs">站台</span>
-                        <span class="text-gray-800 text-xs ml-1">{{ station.get('platform', 'N/A') }}</span>
+                        <span class="text-xs" style="color: var(--text-tertiary);">站台</span>
+                        <span class="text-xs ml-1" style="color: var(--text-primary);">{{ station.get('platform', 'N/A') }}</span>
                     </div>
                     <div class="flex items-center station-dwell-time">
-                        <span class="text-gray-600 text-xs">停站</span>
-                        <span class="text-gray-800 text-xs ml-1">{{ station.get('dwell_time', '00:00') }}</span>
+                        <span class="text-xs" style="color: var(--text-tertiary);">停站</span>
+                        <span class="text-xs ml-1" style="color: var(--text-primary);">{{ station.get('dwell_time', '00:00') }}</span>
                     </div>
                     <div class="flex items-center station-total-time">
-                        <span class="text-gray-600 text-xs">累计运行</span>
-                        <span class="text-gray-800 text-xs ml-1">{{ station.get('total_time', '00:00') }}</span>
+                        <span class="text-xs" style="color: var(--text-tertiary);">累计运行</span>
+                        <span class="text-xs ml-1" style="color: var(--text-primary);">{{ station.get('total_time', '00:00') }}</span>
                     </div>
                 </div>
             </div>
             {% if not loop.last and station.get('travel_time') %}
             <div class="flex justify-end mt-1 station-travel-time">
-                <span class="text-gray-500 text-xs">运行 {{ station['travel_time'] }}</span>
+                <span class="text-xs" style="color: var(--text-tertiary);">运行 {{ station['travel_time'] }}</span>
             </div>
             {% endif %}
             {% endfor %}
         </div>
     </div>
     {% else %}
-    <div class="bg-gray-50 p-6 rounded-md text-center">
-        <i class="fa-solid fa-train text-3xl text-gray-400 mb-2"></i>
-        <p class="text-gray-500">该线路未关联任何站点</p>
+    <div class="p-6 rounded-md text-center" style="background-color: var(--bg-tertiary);">
+        <i class="fa-solid fa-train text-3xl mb-2" style="color: var(--text-tertiary);"></i>
+        <p style="color: var(--text-secondary);">该线路未关联任何站点</p>
     </div>
     {% endif %}
 </div>
