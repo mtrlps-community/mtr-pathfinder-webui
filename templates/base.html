@@ -6,8 +6,8 @@
     <title>MTR Pathfinder WebUI</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome -->
-    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Font Awesome v7 from npmmirror -->
+    <link href="https://registry.npmmirror.com/@fortawesome/fontawesome-free/7.2.0/files/css/all.min.css" rel="stylesheet">
     <!-- Umami Analytics -->
     {% if config.UMAMI_SCRIPT_URL and config.UMAMI_WEBSITE_ID %}
     <script defer src="{{ config.UMAMI_SCRIPT_URL }}" data-website-id="{{ config.UMAMI_WEBSITE_ID }}"></script>
@@ -558,28 +558,28 @@
     <nav class="bg-white shadow-md" style="position: relative;">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-2">
-                <i class="fa fa-subway text-blue-500 text-2xl"></i>
+                <i class="fas fa-subway text-blue-500 text-2xl"></i>
                 <h1 class="text-xl font-bold text-gray-800">MTR Pathfinder</h1>
             </div>
             
             <!-- 汉堡菜单按钮 -->
             <button class="mobile-menu-button md:hidden text-gray-600 hover:text-gray-800 focus:outline-none">
-                <i class="fa fa-bars text-xl"></i>
+                <i class="fas fa-bars text-xl"></i>
             </button>
             
             <!-- 导航链接 -->
             <div class="nav-links">
                 <a href="/" class="nav-item {{ 'active' if request.path == '/' else '' }}">
-                    <i class="fa fa-search mr-1"></i> 寻路
+                    <i class="fas fa-search mr-1"></i> 寻路
                 </a>
                 <a href="/stations" class="nav-item {{ 'active' if request.path == '/stations' else '' }}">
-                    <i class="fa fa-map-marker mr-1"></i> 车站列表
+                    <i class="fas fa-map-marker-alt mr-1"></i> 车站列表
                 </a>
                 <a href="/routes" class="nav-item {{ 'active' if request.path == '/routes' else '' }}">
-                    <i class="fa fa-train mr-1"></i> 线路列表
+                    <i class="fas fa-train mr-1"></i> 线路列表
                 </a>
                 <a href="/admin" class="nav-item {{ 'active' if request.path == '/admin' else '' }}">
-                    <i class="fa fa-cog mr-1"></i> 控制台
+                    <i class="fas fa-gear mr-1"></i> 控制台
                 </a>
             </div>
         </div>
