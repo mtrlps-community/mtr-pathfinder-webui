@@ -428,6 +428,7 @@ def route_detail(route_id):
     route_data = None
     all_stations = {}
     all_routes_data = []
+    same_name_routes = []  # 初始化same_name_routes，避免UnboundLocalError
     # 优先使用v3版本的数据文件，因为它包含更多信息
     data_file_path = config['LOCAL_FILE_PATH_V3']
     if os.path.exists(data_file_path):
@@ -612,7 +613,8 @@ def route_detail(route_id):
                 # 处理交路信息
                 route_info = {
                     'id': route.get('id', ''),
-                    'name': route_name.replace('|', ' ')
+                    'name': route_name.replace('|', ' '),
+                    'number': route.get('number', '')  # 添加线路编号
                 }
                 # 添加交路编号
                 if '||' in route_name:
