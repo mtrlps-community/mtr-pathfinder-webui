@@ -145,7 +145,7 @@ PNG_PATH = 'mtr_pathfinder_data'
 
 @app.context_processor
 def inject_config():
-    return dict(config=config)
+    return dict(config=config, request=request)
 
 @app.route('/')
 def index():

@@ -1,5 +1,6 @@
 __pycache__/
 /generated_images/
 /mtr_pathfinder_temp/
-/*.json
-/*.dat
+*.json
+!zbpack.json
+*.dat
