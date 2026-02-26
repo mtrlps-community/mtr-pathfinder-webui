@@ -10,11 +10,14 @@ from mtr_pathfinder_lib.mtr_pathfinder import (
     gen_route_interval as gen_route_interval_v3,
     create_graph as create_graph_v3,
     find_shortest_route as find_shortest_route_v3,
+    save_image as save_image_v3,
+    main as mtr_main_v3,
     RouteType as RouteTypeV3,
 )
 
 from mtr_pathfinder_lib.mtr_pathfinder_v4 import (
     main as mtr_main_v4,
+    save_image as save_image_v4,
     gen_departure as gen_departure_v4
 )
 
@@ -738,6 +741,9 @@ def api_find_route():
         'message': '正在初始化寻路参数...'
     }
     
+    # 声明全局变量
+    global latest_image_path
+    
     # 增加寻路次数统计
     global route_search_count
     route_search_count += 1
@@ -800,8 +806,8 @@ def api_find_route():
             if dep_time_seconds is None and client_time is not None:
                 dep_time_seconds = (client_time + 10) % 86400
             
-            # 调用v4版程序的main函数，获取路线详情
-            result = mtr_main_v4(
+            # 1. 生成gen_image=False条件下的数组结果
+            result_gen_image_false = mtr_main_v4(
                 station1=data['start'],
                 station2=data['end'],
                 LINK=config['LINK'],
@@ -830,40 +836,19 @@ def api_find_route():
                 departure_time=dep_time_seconds
             )
             
-            # 更新进度
-            search_progress.update({
-                'percentage': 75,
-                'stage': '(4/4)结果处理',
-                'message': '寻路计算完成，正在处理结果...'
-            })
-            
             # 检查寻路结果
-            if result == []:
+            if result_gen_image_false == []:
                 # 找不到路线
                 return jsonify({'error': '找不到路线，请尝试调整选项'}), 400
-            elif result is False:
+            elif result_gen_image_false is False:
                 # 找不到路线
                 return jsonify({'error': '找不到路线，请尝试调整选项'}), 400
-            elif result is None:
+            elif result_gen_image_false is None:
                 # 车站名称不正确
                 return jsonify({'error': '车站名称不正确，请检查输入'}), 400
             
-            # 处理v4版程序的返回结果
-            # 注意：v4版函数返回值有两种情况：
-            # 1. 当gen_image=False时，返回的是every_route_time列表（直接返回路线详情）
-            # 2. 当gen_image=True时，返回的是包含5个元素的列表
-            
             # 提取路线详情列表
-            every_route_time = []
-            if isinstance(result, list):
-                if result and isinstance(result[0], tuple) and len(result[0]) >= 4:
-                    # 情况1：直接返回的是every_route_time列表
-                    every_route_time = result
-                elif len(result) >= 5:
-                    # 情况2：返回的是包含5个元素的列表，第5个元素是every_route_time
-                    every_route_time = result[4]
-            else:
-                every_route_time = []
+            every_route_time = result_gen_image_false
             
             # 构建车站列表
             station_names = []
@@ -879,7 +864,6 @@ def api_find_route():
                     station_names.append(end_station)
             
             # 计算总用时、乘车时间和等车时间
-            # v4版返回的是实际的发车和到站时间，需要计算差值
             if every_route_time:
                 total_time = every_route_time[-1][6] - every_route_time[0][5]  # 总用时 = 最后一站到站时间 - 第一站发车时间
                 riding_time = sum(leg[6] - leg[5] for leg in every_route_time)  # 乘车时间 = 各段乘车时间之和
@@ -897,28 +881,68 @@ def api_find_route():
                 riding_time,  # 乘车时间 (元素3)
                 waiting_time  # 等车时间 (元素4)
             ]
+            
+            # 3. 初始化图片缓存，图片将在后台生成
+            image_base64 = None
         else:
             # 使用v3版程序的寻路功能
             
             # 更新进度
             search_progress.update({
-                'percentage': 20,
-                'stage': '(1/5)数据加载',
-                'message': '正在加载车站数据...'
+                'percentage': 75,
+                'stage': '(3/4)寻路计算',
+                'message': '正在使用最短路径算法计算最优路线...'
             })
             
-            # 读取数据文件
-            with open(config['LOCAL_FILE_PATH'], encoding='utf-8') as f:
-                data_file = json.load(f)
+            # 1. 生成gen_image=False条件下的数组结果
+            result_gen_image_false = mtr_main_v3(
+                station1=data['start'],
+                station2=data['end'],
+                LINK=config['LINK'],
+                LOCAL_FILE_PATH=config['LOCAL_FILE_PATH_V3'],
+                INTERVAL_PATH=config['INTERVAL_PATH_V3'],
+                BASE_PATH=BASE_PATH,
+                PNG_PATH=PNG_PATH,
+                MAX_WILD_BLOCKS=config['MAX_WILD_BLOCKS'],
+                TRANSFER_ADDITION=config['TRANSFER_ADDITION'],
+                WILD_ADDITION=config['WILD_ADDITION'],
+                STATION_TABLE=config['STATION_TABLE'],
+                ORIGINAL_IGNORED_LINES=config['ORIGINAL_IGNORED_LINES'],
+                UPDATE_DATA=False,
+                GEN_ROUTE_INTERVAL=False,
+                IGNORED_LINES=data.get('ignored_lines', []),
+                ONLY_LINES=data.get('only_lines', []),
+                AVOID_STATIONS=data.get('avoid_stations', []),
+                CALCULATE_HIGH_SPEED=not data.get('disable_high_speed', False),
+                CALCULATE_BOAT=not data.get('disable_boat', False),
+                CALCULATE_WALKING_WILD=data.get('enable_wild', False),
+                ONLY_LRT=data.get('only_lrt', False),
+                IN_THEORY=algorithm == 'theory',
+                DETAIL=False,
+                MTR_VER=config['MTR_VER'],
+                gen_image=False,
+                show=False
+            )
             
-            # 更新进度
-            search_progress.update({
-                'percentage': 40,
-                'stage': '(2/5)参数准备',
-                'message': '正在准备寻路参数...'
-            })
+            # 检查寻路结果
+            if result_gen_image_false in [False, None]:
+                if result_gen_image_false is False:
+                    return jsonify({'error': '找不到路线，请尝试调整选项'}), 400
+                else:
+                    return jsonify({'error': '车站名称不正确，请检查输入'}), 400
             
+            # 提取路线详情
+            every_route_time, shortest_distance = result_gen_image_false
+            
+            # 3. 初始化图片缓存，图片将在后台生成
+            image_base64 = None
+            
+            # 处理gen_image=False的结果，构建符合前端期望的格式
             IN_THEORY = algorithm == 'theory'
+            
+            # 读取数据文件以获取完整结果
+            with open(config['LOCAL_FILE_PATH_V3'], encoding='utf-8') as f:
+                data_file = json.load(f)
             
             # 合并忽略线路
             ignored_lines = data.get('ignored_lines', []) + config['ORIGINAL_IGNORED_LINES']
@@ -926,24 +950,17 @@ def api_find_route():
             # 转换车站表格式
             station_table = {x.lower(): y.lower() for x, y in config['STATION_TABLE'].items()}
             
-            # 更新进度
-            search_progress.update({
-                'percentage': 60,
-                'stage': '(3/5)图构建',
-                'message': '正在构建站点连接图...'
-            })
-            
             # 检查是否使用了缓存 - 在调用 create_graph 之前检查，以准确反映寻路请求发出时的缓存状态
             # 缓存使用条件：cache=True, ignored_lines=original_ignored_lines, CALCULATE_BOAT=True, ONLY_LRT=False, ONLY_LINES=[], AVOID_STATIONS=[], route_type=RouteType.WAITING
-            cache_conditions_met = (True and 
-                                  ignored_lines == config['ORIGINAL_IGNORED_LINES'] and 
-                                  not data.get('disable_boat', False) and 
-                                  not data.get('only_lrt', False) and 
-                                  not data.get('only_lines', []) and 
-                                  not data.get('avoid_stations', []) and 
+            used_cache = False
+            cache_conditions_met = (True and \
+                                  ignored_lines == config['ORIGINAL_IGNORED_LINES'] and \
+                                  not data.get('disable_boat', False) and \
+                                  not data.get('only_lrt', False) and \
+                                  not data.get('only_lines', []) and \
+                                  not data.get('avoid_stations', []) and \
                                   (RouteTypeV3.IN_THEORY if IN_THEORY else RouteTypeV3.WAITING) == RouteTypeV3.WAITING)
             
-            used_cache = False
             if cache_conditions_met:
                 # 生成与 create_graph 函数完全一致的缓存文件名
                 import hashlib
@@ -978,9 +995,9 @@ def api_find_route():
                 data.get('avoid_stations', []),
                 RouteTypeV3.IN_THEORY if IN_THEORY else RouteTypeV3.WAITING,
                 config['ORIGINAL_IGNORED_LINES'],
-                config['INTERVAL_PATH'],
+                config['INTERVAL_PATH_V3'],
                 '', '',
-                config['LOCAL_FILE_PATH'],
+                config['LOCAL_FILE_PATH_V3'],
                 station_table,
                 config['WILD_ADDITION'],
                 config['TRANSFER_ADDITION'],
@@ -989,50 +1006,31 @@ def api_find_route():
                 True
             )
             
-            # 更新进度
-            search_progress.update({
-                'percentage': 80,
-                'stage': '(4/5)寻路计算',
-                'message': '正在使用最短路径算法计算最优路线...'
-            })
-            
-            # 调用寻路函数获取完整结果
-            result = find_shortest_route_v3(
+            # 查找最短路径以获取完整结果
+            station_str, shortest_distance, waiting_time, riding_time, every_route_time = find_shortest_route_v3(
                 G, data['start'], data['end'],
                 data_file, station_table,
                 config['MTR_VER']
             )
             
-            # 更新进度
-            search_progress.update({
-                'percentage': 90,
-                'stage': '(5/5)结果处理',
-                'message': '寻路计算完成，正在处理结果...'
-            })
-            
             # 检查寻路结果
-            station_str, shortest_distance, waiting_time, riding_time, every_route_time = result
+            if station_str in [False, None]:
+                if station_str is False:
+                    return jsonify({'error': '找不到路线，请尝试调整选项'}), 400
+                else:
+                    return jsonify({'error': '车站名称不正确，请检查输入'}), 400
             
-            if all(item is None for item in result):
-                # 所有结果都是None，说明车站名称不正确
-                return jsonify({'error': '车站名称不正确，请检查输入'}), 400
-            elif station_str is False:
-                # 找不到路线
-                return jsonify({'error': '找不到路线，请尝试调整选项'}), 400
-            else:
-                # 将车站字符串转换为车站列表
-                # 原始格式："车站1 -> 路线1 -> 车站2 -> 路线2 -> 车站3"
-                # 需要转换为：["车站1", "路线1", "车站2", "路线2", "车站3"]
-                station_names = station_str.split(' ->\n')
-                
-                # 构建符合前端期望的结果数组
-                formatted_result = [
-                    shortest_distance,  # 总用时 (元素0)
-                    station_names,  # 车站列表 (元素1)
-                    every_route_time,  # 路线详情 (元素2)
-                    riding_time,  # 乘车时间 (元素3)
-                    waiting_time  # 等车时间 (元素4)
-                ]
+            # 将车站字符串转换为车站列表
+            station_names = station_str.split(' ->\n')
+            
+            # 构建符合前端期望的结果数组
+            formatted_result = [
+                shortest_distance,  # 总用时 (元素0)
+                station_names,  # 车站列表 (元素1)
+                every_route_time,  # 路线详情 (元素2)
+                riding_time,  # 乘车时间 (元素3)
+                waiting_time  # 等车时间 (元素4)
+            ]
         
         # 更新进度为100%
         search_progress.update({
@@ -1069,7 +1067,139 @@ def api_find_route():
             ).strftime('%Y%m%d-%H%M')
         
         # 初始化used_cache变量，实时寻路模式下默认为False
-        used_cache = locals().get('used_cache', False)
+        used_cache = False
+        
+        # 生成唯一标识符
+        import uuid
+        image_id = str(uuid.uuid4())
+        
+        # 将图片数据存储在缓存中，状态为generating
+        image_cache[image_id] = {
+            'status': 'generating',
+            'data': None
+        }
+        
+        # 使用线程在后台生成图片
+        import threading
+        def generate_image_background():
+            try:
+                generated_image_base64 = None
+                generated_image_path = None
+                
+                if algorithm == 'real':
+                    # 使用v4版程序生成图片
+                    result_gen_image_true = mtr_main_v4(
+                        station1=data['start'],
+                        station2=data['end'],
+                        LINK=config['LINK'],
+                        LOCAL_FILE_PATH=config['LOCAL_FILE_PATH_V4'],
+                        DEP_PATH=config['DEP_PATH_V4'],
+                        BASE_PATH=BASE_PATH,
+                        PNG_PATH=PNG_PATH,
+                        MAX_WILD_BLOCKS=config['MAX_WILD_BLOCKS'],
+                        TRANSFER_ADDITION=config['TRANSFER_ADDITION'],
+                        WILD_ADDITION=config['WILD_ADDITION'],
+                        STATION_TABLE=config['STATION_TABLE'],
+                        ORIGINAL_IGNORED_LINES=config['ORIGINAL_IGNORED_LINES'],
+                        UPDATE_DATA=False,
+                        GEN_DEPARTURE=False,
+                        IGNORED_LINES=data.get('ignored_lines', []),
+                        ONLY_LINES=data.get('only_lines', []),
+                        AVOID_STATIONS=data.get('avoid_stations', []),
+                        CALCULATE_HIGH_SPEED=not data.get('disable_high_speed', False),
+                        CALCULATE_BOAT=not data.get('disable_boat', False),
+                        CALCULATE_WALKING_WILD=data.get('enable_wild', False),
+                        ONLY_LRT=data.get('only_lrt', False),
+                        DETAIL=True,
+                        MAX_HOUR=config['MAX_HOUR'],
+                        gen_image=True,
+                        show=False,
+                        departure_time=dep_time_seconds
+                    )
+                    
+                    # 保存图片到文件系统
+                    if result_gen_image_true and result_gen_image_true not in [False, None]:
+                        # 保存图片到文件系统，方便前端获取
+                        output_dir = 'generated_images'
+                        if not os.path.exists(output_dir):
+                            os.makedirs(output_dir)
+                        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                        generated_image_path = os.path.join(output_dir, f'path_result_{timestamp}.png')
+                        
+                        if isinstance(result_gen_image_true, tuple) and len(result_gen_image_true) == 2:
+                            # v4版main函数返回的图片格式：(image object, base64 str)
+                            image, generated_image_base64 = result_gen_image_true
+                            image.save(generated_image_path)
+                else:
+                    # 使用v3版程序生成图片
+                    result_gen_image_true = mtr_main_v3(
+                        station1=data['start'],
+                        station2=data['end'],
+                        LINK=config['LINK'],
+                        LOCAL_FILE_PATH=config['LOCAL_FILE_PATH_V3'],
+                        INTERVAL_PATH=config['INTERVAL_PATH_V3'],
+                        BASE_PATH=BASE_PATH,
+                        PNG_PATH=PNG_PATH,
+                        MAX_WILD_BLOCKS=config['MAX_WILD_BLOCKS'],
+                        TRANSFER_ADDITION=config['TRANSFER_ADDITION'],
+                        WILD_ADDITION=config['WILD_ADDITION'],
+                        STATION_TABLE=config['STATION_TABLE'],
+                        ORIGINAL_IGNORED_LINES=config['ORIGINAL_IGNORED_LINES'],
+                        UPDATE_DATA=False,
+                        GEN_ROUTE_INTERVAL=False,
+                        IGNORED_LINES=data.get('ignored_lines', []),
+                        ONLY_LINES=data.get('only_lines', []),
+                        AVOID_STATIONS=data.get('avoid_stations', []),
+                        CALCULATE_HIGH_SPEED=not data.get('disable_high_speed', False),
+                        CALCULATE_BOAT=not data.get('disable_boat', False),
+                        CALCULATE_WALKING_WILD=data.get('enable_wild', False),
+                        ONLY_LRT=data.get('only_lrt', False),
+                        IN_THEORY=algorithm == 'theory',
+                        DETAIL=True,
+                        MTR_VER=config['MTR_VER'],
+                        gen_image=True,
+                        show=False
+                    )
+                    
+                    # 保存图片到文件系统
+                    if result_gen_image_true and result_gen_image_true not in [False, None]:
+                        # 保存图片到文件系统，方便前端获取
+                        output_dir = 'generated_images'
+                        if not os.path.exists(output_dir):
+                            os.makedirs(output_dir)
+                        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                        generated_image_path = os.path.join(output_dir, f'path_result_{timestamp}.png')
+                        
+                        if isinstance(result_gen_image_true, tuple) and len(result_gen_image_true) == 2:
+                            # v3版main函数返回的图片格式：(image object, base64 str)
+                            image, generated_image_base64 = result_gen_image_true
+                            image.save(generated_image_path)
+                
+                # 更新图片缓存
+                if generated_image_path:
+                    global latest_image_path
+                    latest_image_path = generated_image_path
+                
+                if generated_image_base64:
+                    image_cache[image_id] = {
+                        'status': 'success',
+                        'data': generated_image_base64
+                    }
+                else:
+                    image_cache[image_id] = {
+                        'status': 'failed',
+                        'error': '图片生成失败'
+                    }
+            except Exception as e:
+                import traceback
+                print(f"后台生成图片错误: {traceback.format_exc()}")
+                image_cache[image_id] = {
+                    'status': 'failed',
+                    'error': f'图片生成失败: {str(e)}'
+                }
+        
+        # 启动后台线程生成图片
+        threading.Thread(target=generate_image_background).start()
         
         # 返回调整后的结果，包含寻路模式、计算用时、数据版本和缓存标志
         return jsonify({
@@ -1082,7 +1212,8 @@ def api_find_route():
                 'station_version_v4': station_version_v4,
                 'route_version_v4': route_version_v4,
                 'interval_version': interval_version
-            }
+            },
+            'image_id': image_id  # 返回图片的唯一标识符
         })
     except Exception as e:
         import traceback
@@ -1153,188 +1284,45 @@ def api_search_stations():
 # 全局变量，用于存储最新生成的图片文件路径
 latest_image_path = ''
 
-@app.route('/api/generate_image', methods=['POST'])
-def api_generate_image():
-    """生成结果图片"""
-    global latest_image_path
-    try:
-        # 获取请求数据
-        data = request.json
-        
-        # 准备参数
-        algorithm = data.get('algorithm', 'default')
-        
-        # 确保输出目录存在
-        import os
-        output_dir = 'generated_images'
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-        
-        # 生成唯一的图片文件名
-        from datetime import datetime
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        image_path = os.path.join(output_dir, f'path_result_{timestamp}.png')
-        
-        # 根据算法选择不同的寻路实现
-        if algorithm == 'real':
-            # 处理出发时间参数
-            dep_time_seconds = data.get('dep_time')
-            client_time = data.get('client_time')
-            
-            # 如果dep_time_seconds为None且提供了客户端时间，使用客户端时间+10秒作为出发时间
-            if dep_time_seconds is None and client_time is not None:
-                dep_time_seconds = (client_time + 10) % 86400
-            
-            # 使用v4版程序生成图片
-            result = mtr_main_v4(
-                station1=data['start'],
-                station2=data['end'],
-                LINK=config['LINK'],
-                LOCAL_FILE_PATH=config['LOCAL_FILE_PATH_V4'],
-                DEP_PATH=config['DEP_PATH_V4'],
-                BASE_PATH=BASE_PATH,
-                PNG_PATH=PNG_PATH,
-                MAX_WILD_BLOCKS=config['MAX_WILD_BLOCKS'],
-                TRANSFER_ADDITION=config['TRANSFER_ADDITION'],
-                WILD_ADDITION=config['WILD_ADDITION'],
-                STATION_TABLE=config['STATION_TABLE'],
-                ORIGINAL_IGNORED_LINES=config['ORIGINAL_IGNORED_LINES'],
-                UPDATE_DATA=False,
-                GEN_DEPARTURE=False,
-                IGNORED_LINES=data.get('ignored_lines', []),
-                ONLY_LINES=data.get('only_lines', []),
-                AVOID_STATIONS=data.get('avoid_stations', []),
-                CALCULATE_HIGH_SPEED=not data.get('disable_high_speed', False),
-                CALCULATE_BOAT=not data.get('disable_boat', False),
-                CALCULATE_WALKING_WILD=data.get('enable_wild', False),
-                ONLY_LRT=data.get('only_lrt', False),
-                DETAIL=data.get('detail', True),
-                MAX_HOUR=config['MAX_HOUR'],
-                gen_image=True,
-                show=False,
-                departure_time=dep_time_seconds
-            )
-        else:
-            # 使用v3版程序生成图片
-            # 检查数据文件是否存在
-            import os
-            if not os.path.exists(config['LOCAL_FILE_PATH']) or not os.path.exists(config['INTERVAL_PATH']):
-                return jsonify({'error': '数据文件不存在，请先更新数据'}), 400
-            
-            # 直接调用v3版的相关函数生成图片
-            from mtr_pathfinder_lib.mtr_pathfinder import (
-                create_graph as create_graph_v3,
-                find_shortest_route as find_shortest_route_v3,
-                save_image,
-                RouteType
-            )
-            
-            # 读取数据文件
-            with open(config['LOCAL_FILE_PATH'], encoding='utf-8') as f:
-                data_file = json.load(f)
-            
-            IN_THEORY = algorithm == 'theory'
-            route_type = RouteType.IN_THEORY if IN_THEORY else RouteType.WAITING
-            
-            # 合并忽略线路
-            ignored_lines = data.get('ignored_lines', []) + config['ORIGINAL_IGNORED_LINES']
-            
-            # 转换车站表格式
-            station_table = {x.lower(): y.lower() for x, y in config['STATION_TABLE'].items()}
-            
-            # 创建图
-            G = create_graph_v3(
-                data_file,
-                ignored_lines,
-                data.get('only_lines', []),
-                not data.get('disable_high_speed', False),
-                not data.get('disable_boat', False),
-                data.get('enable_wild', False),
-                data.get('only_lrt', False),
-                data.get('avoid_stations', []),
-                route_type,
-                config['ORIGINAL_IGNORED_LINES'],
-                config['INTERVAL_PATH'],
-                '', '',  # version1, version2
-                config['LOCAL_FILE_PATH'],
-                station_table,
-                config['WILD_ADDITION'],
-                config['TRANSFER_ADDITION'],
-                config['MAX_WILD_BLOCKS'],
-                config['MTR_VER'],
-                True
-            )
-            
-            # 查找最短路径
-            shortest_path, shortest_distance, waiting_time, riding_time, ert = find_shortest_route_v3(
-                G, data['start'], data['end'],
-                data_file, station_table, config['MTR_VER']
-            )
-            
-            # 检查寻路结果
-            if shortest_path in [False, None]:
-                with open('debug_log.txt', 'a') as f:
-                    f.write(f"[{datetime.now()}] DEBUG: 寻路失败，shortest_path: {shortest_path}\n")
-                return jsonify({'error': '生成图片失败，可能是找不到路线或车站名称错误'}), 400
-            
-            # 获取数据版本信息
-            import os
-            from datetime import datetime
-            
-            station_version = ""
-            interval_version = ""
-            
-            if os.path.exists(config['LOCAL_FILE_PATH_V3']):
-                station_version = datetime.fromtimestamp(
-                    os.path.getmtime(config['LOCAL_FILE_PATH_V3'])
-                ).strftime('%Y%m%d-%H%M')
-            if os.path.exists(config['INTERVAL_PATH_V3']):
-                interval_version = datetime.fromtimestamp(
-                    os.path.getmtime(config['INTERVAL_PATH_V3'])
-                ).strftime('%Y%m%d-%H%M')
-            
-            # 生成图片
-            result = save_image(
-                route_type,
-                ert,
-                shortest_distance,
-                riding_time,
-                waiting_time,
-                BASE_PATH,
-                station_version,
-                interval_version,
-                data.get('detail', True),  # DETAIL
-                PNG_PATH,
-                False  # show
-            )
-        
-        # 检查结果
-        if result in [False, None]:
-            return jsonify({'error': '生成图片失败，可能是找不到路线或车站名称错误'}), 400
-        
-        # 保存图片到文件系统
-        try:
-            image, base64_str = result
-        except Exception as e:
-            return jsonify({'error': f'解析图片结果失败: {str(e)}'}), 500
-        image.save(image_path)
-        
-        # 更新最新图片路径
-        latest_image_path = image_path
-        
-        return jsonify({'success': True})
-    except Exception as e:
-        import traceback
-        print(f"生成图片错误: {traceback.format_exc()}")
-        return jsonify({'error': str(e)}), 500
+# 图片缓存，用于存储生成的图片数据
+image_cache = {}
 
 @app.route('/api/get_image', methods=['GET'])
 def api_get_image():
     """获取生成的结果图片"""
     try:
         import os
+        from flask import Response
         
-        # 检查是否有最新生成的图片
+        # 获取image_id参数
+        image_id = request.args.get('image_id')
+        
+        if image_id and image_id in image_cache:
+            # 从缓存中获取图片数据
+            image_info = image_cache[image_id]
+            
+            if image_info['status'] == 'generating':
+                # 如果图片还在生成中，返回生成中的状态
+                return jsonify({'status': 'generating'}), 202
+            elif image_info['status'] == 'failed':
+                # 如果图片生成失败，返回错误信息
+                return jsonify({'status': 'failed', 'error': image_info.get('error', '图片生成失败')}), 500
+            elif image_info['data']:
+                # 如果图片生成成功，返回图片数据
+                image_base64 = image_info['data']
+                
+                # 解析base64数据
+                import base64
+                if image_base64.startswith('data:image/png;base64,'):
+                    image_base64 = image_base64.split(',')[1]
+                
+                # 转换为二进制数据
+                image_data = base64.b64decode(image_base64)
+                
+                # 返回图片响应
+                return Response(image_data, mimetype='image/png')
+        
+        # 检查是否有最新生成的图片文件
         if not latest_image_path or not os.path.exists(latest_image_path):
             # 如果没有，查找generated_images目录下的最新PNG文件
             output_dir = 'generated_images'
@@ -1350,7 +1338,7 @@ def api_get_image():
             latest_png = max(png_files, key=os.path.getmtime)
             return send_from_directory(os.path.dirname(latest_png), os.path.basename(latest_png))
         
-        # 返回最新生成的图片
+        # 返回最新生成的图片文件
         return send_from_directory(os.path.dirname(latest_image_path), os.path.basename(latest_image_path))
     except Exception as e:
         import traceback

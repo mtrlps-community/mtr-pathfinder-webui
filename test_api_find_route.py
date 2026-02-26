@@ -10,7 +10,7 @@ params = {
     'end': 'Sundogs',
     
     # 寻路参数
-    'algorithm': 'real',  # default, theory, real
+    'algorithm': 'default',  # default, theory, real
     'ignored_lines': [],
     'avoid_stations': [],
     'disable_high_speed': True,
@@ -33,6 +33,8 @@ if __name__ == '__main__':
         # 打印原始JSON结果
         print("原始API响应:")
         print(json.dumps(response.json(), ensure_ascii=False, indent=2))
+        with open("webui_return.json", "w", encoding="utf-8") as file:
+            file.write(json.dumps(response.json(), ensure_ascii=False, indent=2))
     except requests.exceptions.RequestException as e:
         print(f"API调用失败: {e}")
     except json.JSONDecodeError as e:
