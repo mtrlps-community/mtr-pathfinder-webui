@@ -5,6 +5,7 @@ Find paths between two stations for Minecraft Transit Railway.
 from difflib import SequenceMatcher
 from enum import Enum
 from io import BytesIO
+from itertools import chain
 from math import gcd, sqrt
 from operator import itemgetter
 from statistics import median_low
@@ -875,6 +876,9 @@ def create_graph(data: list, IGNORED_LINES: list[str], ONLY_LINES: list[str],
                     station_list = stations[i:i2 + 1]
                     dwell = sum([x['dwellTime'] / 1000
                                  for x in station_list][1:-1])
+                    # if route_type == RouteType.IN_THEORY:
+                    #     dwell += (station_1['dwellTime'] +
+                    #               station_2['dwellTime']) / 2 / 1000
                     c = False
                     for sta in station_list:
                         if sta['id'] in avoid_ids:
@@ -1064,9 +1068,9 @@ def create_graph(data: list, IGNORED_LINES: list[str], ONLY_LINES: list[str],
     return G
 
 
-def find_shortest_route(G: nx.MultiDiGraph, start: str, end: str,
-                        data: list, STATION_TABLE,
-                        MTR_VER) -> list[str, int, int, int, list]:
+def find_shortest_route(G: nx.MultiDiGraph, start: str, end: str, data: list,
+                        STATION_TABLE, MTR_VER, route_type: RouteType
+                        ) -> list[str, int, int, int, list]:
     '''
     Find the shortest route between two stations.
     '''
@@ -1093,11 +1097,67 @@ def find_shortest_route(G: nx.MultiDiGraph, start: str, end: str,
     except nx.exception.NodeNotFound:
         return False, False, False, False, False
 
-    return process_path(G, shortest_path, shortest_distance, data, MTR_VER)
+    return process_path(G, shortest_path, shortest_distance,
+                        data, MTR_VER, route_type)
+
+
+def remove_duplicate(data, ert):
+    all_routes = data[0]['routes']
+    new_ert = []
+    removed_legs = []
+    for i in range(len(ert) - 1):
+        if i in removed_legs:
+            continue
+
+        old_leg = list(sorted(ert[i], key=lambda x: x[4][0]))
+        for j in range(i + 1, len(ert)):
+            new_leg = list(sorted(ert[j], key=lambda x: x[4][0]))
+            if [x[2:5] + x[6:9] for x in old_leg] == \
+                    [x[2:5] + x[6:9] for x in new_leg]:
+                for k in range(len(old_leg)):
+                    old_leg[k][1] = new_leg[k][1]
+                    old_leg[k][5] += new_leg[k][5]
+                    old_leg[k][10][2] = new_leg[k][10][2]
+
+                removed_legs.append(j)
+            else:
+                break
+
+        for k in range(len(old_leg)):
+            for x in all_routes:
+                if x['id'] == old_leg[k][10][0]:
+                    sta1 = old_leg[k][10][1]
+                    sta2 = old_leg[k][10][2]
+                    stations = x['stations']
+                    sta_ids = [y['id'] for y in stations]
+                    dwells = [round(y['dwellTime'] / 1000)
+                                for y in stations]
+                    i1 = -1
+                    while True:
+                        try:
+                            i1 = sta_ids.index(sta1, i1 + 1)
+                        except ValueError:
+                            break
+
+                        try:
+                            i2 = sta_ids.index(sta2, i1 + 1)
+                        except ValueError:
+                            pass
+                        else:
+                            break
+
+                    dwell = sum(dwells[i1 + 1:i2])
+                    old_leg[k][5] += dwell
+
+        new_ert.append(old_leg)
+
+    every_route_time = list(chain(*new_ert))
+    return every_route_time
 
 
 def process_path(G: nx.MultiDiGraph, path: list, shortest_distance: int,
-                 data: list, MTR_VER) -> list[str, int, int, int, list]:
+                 data: list, MTR_VER,
+                 route_type: RouteType) -> list[str, int, int, int, list]:
     '''
     Process the path, change it into human readable form.
     '''
@@ -1225,12 +1285,17 @@ def process_path(G: nx.MultiDiGraph, path: list, shortest_distance: int,
 
                     color = hex(z['color']).lstrip('0x').rjust(6, '0')
                     train_type = z['type']
+                    if MTR_VER == 4:
+                        route_id = z['id']
+                    else:
+                        route_id = None
                     break
             else:
                 color = '000000'
                 route = route_name
                 terminus = (route_name.split('，用时')[0], 'Walk')
                 train_type = None
+                route_id = None
 
             color = '#' + color
 
@@ -1238,8 +1303,9 @@ def process_path(G: nx.MultiDiGraph, path: list, shortest_distance: int,
             if route_name in intervals:
                 sep_waiting = int(intervals[route_name])
 
-            r = (sta1_name, sta2_name, color, route, terminus, duration,
-                 waiting, sep_waiting, train_type, platform, z['name'])
+            r = [sta1_name, sta2_name, color, route, terminus, duration,
+                 waiting, sep_waiting, train_type, platform,
+                 [route_id, station_1, station_2]]
 
             if len(each_route_time) > 0:
                 old_r = each_route_time[-1]
@@ -1253,7 +1319,7 @@ def process_path(G: nx.MultiDiGraph, path: list, shortest_distance: int,
         # each_route_time.sort(key=itemgetter(4))
         each_route_time.sort(key=lambda x: natural_keys(x[3]))
         each_route_time.sort(key=itemgetter(5))
-        every_route_time.extend(each_route_time)
+        every_route_time.append(each_route_time)
 
         each_route_time = []
         duration = 0
@@ -1262,6 +1328,11 @@ def process_path(G: nx.MultiDiGraph, path: list, shortest_distance: int,
     end_ = stations[station_2]['name']
     if station_names[-1] != end_:
         station_names += end_
+
+    if route_type == RouteType.IN_THEORY and MTR_VER == 4:
+        every_route_time = remove_duplicate(data, every_route_time)
+    else:
+        every_route_time = list(chain(*every_route_time))
 
     return ' ->\n'.join(station_names), shortest_distance, \
         waiting_time, shortest_distance - waiting_time, every_route_time
@@ -1355,8 +1426,7 @@ def save_image(route_type: RouteType, every_route_time: list,
 
 def calculate_height_width(pattern: list[list[ImagePattern]],
                            route_type, final_str: str,
-                           final_str_size: int, BASE_PATH,
-                           version1, version2) -> tuple[int]:
+                           final_str_size: int, BASE_PATH) -> tuple[int]:
     '''
     Calculate the width and the height of the image.
     '''
@@ -1375,14 +1445,11 @@ def calculate_height_width(pattern: list[list[ImagePattern]],
     route_len_list += [font.getlength(x[2]) + int(x[0].value) for x in pattern
                        if x[0] in [ImagePattern.THUMB_TEXT,
                                    ImagePattern.THUMB_INTEND_TEXT]]
-    if route_type != RouteType.IN_THEORY:
-        len_final_str = font2.getlength(final_str) + 40
-        if max(route_len_list) > len_final_str:
-            width = round(max(route_len_list))
-        else:
-            width = round(len_final_str)
-    else:
+    len_final_str = font2.getlength(final_str) + 40
+    if max(route_len_list) > len_final_str:
         width = round(max(route_len_list))
+    else:
+        width = round(len_final_str)
 
     height = (len([x for x in pattern
                    if x[0] not in [ImagePattern.FAKE_STATION,
@@ -1418,7 +1485,7 @@ def generate_image(pattern, shortest_distance, riding_time, waiting_time,
     full_time = str(strftime('%H:%M:%S', gm_full))
     waiting_time = str(strftime('%H:%M:%S', gm_waiting))
     travelling_time = str(strftime('%H:%M:%S', gm_travelling))
-    if travelling_time[1] == '0':
+    if travelling_time[1] == '0' or route_type == RouteType.IN_THEORY:
         final_str = f'车站数据版本 Station data version: {version1}'
         final_str_size = 16
     else:
@@ -1435,7 +1502,7 @@ def generate_image(pattern, shortest_distance, riding_time, waiting_time,
     image = Image.new('RGB',
                       calculate_height_width(pattern, route_type,
                                              final_str, final_str_size,
-                                             BASE_PATH, version1, version2),
+                                             BASE_PATH),
                       color='white')
     draw = ImageDraw.Draw(image)
 
@@ -1601,7 +1668,7 @@ def main(station1: str, station2: str, LINK: str,
 
     shortest_path, shortest_distance, waiting_time, riding_time, ert = \
         find_shortest_route(G, station1, station2,
-                            data, STATION_TABLE, MTR_VER)
+                            data, STATION_TABLE, MTR_VER, route_type)
 
     if gen_image is False:
         return ert, shortest_distance

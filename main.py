@@ -1091,7 +1091,7 @@ def api_find_route():
             # 查找最短路径
             shortest_path, shortest_distance, waiting_time, riding_time, ert = find_shortest_route_v3(
                 G, data['start'], data['end'],
-                data_file, STATION_TABLE, MTR_VER
+                data_file, STATION_TABLE, MTR_VER, route_type
             )
 
             search_progress.update({
