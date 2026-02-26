@@ -898,30 +898,24 @@
                     const dataVersions = resultData.data_versions;
                     const usedCache = resultData.used_cache;
                     const imageId = resultData.image_id;
+                    const departureTime = resultData.departure_time; // 从API响应中获取实际使用的出发时间
                     
                     // 检查是否需要重试（仅实时模式）
                     if (algorithm === 'real' && routeResult[2] && routeResult[2].length > 0) {
-                        // 计算计划出发时间
-                        const now = new Date();
-                        const currentSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-                        const depTimeInput = document.getElementById('dep-time');
-                        const depTime = depTimeInput && depTimeInput.value ? parseInt(depTimeInput.value) : 10;
-                        const plannedDepartureTime = (currentSeconds + depTime) % 86400;
-                        
                         // 获取第一条线路的出站时间
                         const firstRouteDeparture = routeResult[2][0][5] || 0;
                         
                         // 检查出发时间是否晚于第一条线路的出站时间
-                        if (plannedDepartureTime > firstRouteDeparture && retryCount < maxRetries) {
+                        if (departureTime > firstRouteDeparture && retryCount < maxRetries) {
                             retryCount++;
-                            console.log(`检测到出发时间（${plannedDepartureTime}）晚于第一条线路出站时间（${firstRouteDeparture}），正在重试...（${retryCount}/${maxRetries}）`);
+                            console.log(`检测到出发时间（${departureTime}）晚于第一条线路出站时间（${firstRouteDeparture}），正在重试...（${retryCount}/${maxRetries}）`);
                             // 递归调用，重试寻路
                             return findRouteWithRetry(data);
                         }
                     }
                     
-                    // 显示结果
-                    displayResultInternal(routeResult, algorithm, calcTime, dataVersions, usedCache, data.detail, imageId);
+                    // 显示结果，传递实际使用的出发时间
+                    displayResultInternal(routeResult, algorithm, calcTime, dataVersions, usedCache, data.detail, imageId, departureTime);
                 } else {
                     // 无结果或错误
                     noResult.classList.remove('hidden');
@@ -938,7 +932,7 @@
         }
         
         // 内部显示结果函数
-        function displayResultInternal(routeResult, algorithm, calcTime, dataVersions, usedCache, detail, imageId) {
+        function displayResultInternal(routeResult, algorithm, calcTime, dataVersions, usedCache, detail, imageId, departureTime) {
             result.classList.remove('hidden');
             
             // 解析routeresult数组，添加默认值处理
@@ -1524,12 +1518,8 @@
             const departureTimeDiv = document.createElement('div');
             departureTimeDiv.className = 'time-stamp departure-time';
             
-            // 计算计划出发时间：当前时间加上用户输入的秒数（默认10秒）
-            const now = new Date();
-            const currentSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-            const depTimeInput = document.getElementById('dep-time');
-            const depTime = depTimeInput && depTimeInput.value ? parseInt(depTimeInput.value) : 10;
-            const plannedDepartureTime = (currentSeconds + depTime) % 86400;
+            // 使用后端返回的实际出发时间
+            const plannedDepartureTime = departureTime || 0;
             
             departureTimeDiv.textContent = `出发时间: ${formatTimestamp(plannedDepartureTime)}`;
             detailsContainer.appendChild(departureTimeDiv);

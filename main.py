@@ -3,6 +3,7 @@ import os
 import json
 import hashlib
 import re
+import time
 from datetime import datetime
 
 from mtr_pathfinder_lib.mtr_pathfinder import (
@@ -26,8 +27,8 @@ app.secret_key = 'your-secret-key'
 # 全局进度跟踪变量
 search_progress = {
     'percentage': 0,
-    'stage': '准备中...',
-    'message': '正在初始化寻路参数...'
+    'stage': '初始化',
+    'message': '传入寻路参数...'
 }
 
 # 数据更新进度跟踪变量
@@ -757,9 +758,12 @@ def api_find_route():
     # 准备参数
     algorithm = data.get('algorithm', 'default')
     
+    # 初始化变量来存储实际使用的出发时间
+    actual_departure_time = None
+    
     # 更新进度
     search_progress.update({
-        'percentage': 25,
+        'percentage': 5,
         'stage': '数据验证',
         'message': '检查数据文件是否存在...'
     })
@@ -780,7 +784,7 @@ def api_find_route():
     
     # 更新进度
     search_progress.update({
-        'percentage': 50,
+        'percentage': 10,
         'stage': '算法判定',
         'message': '根据传入参数选择相应的寻路算法...'
     })
@@ -792,8 +796,8 @@ def api_find_route():
             
             # 更新进度
             search_progress.update({
-                'percentage': 75,
-                'stage': '()寻路计算-v4',
+                'percentage': 20,
+                'stage': '(1/8)寻路计算-V4',
                 'message': '处理出发时间...'
             })
             
@@ -805,9 +809,12 @@ def api_find_route():
             if dep_time_seconds is None and client_time is not None:
                 dep_time_seconds = (client_time + 10) % 86400
             
+            # 保存实际使用的出发时间
+            actual_departure_time = dep_time_seconds
+            
             search_progress.update({
-                'percentage': 75,
-                'stage': '()寻路计算-v4',
+                'percentage': 25,
+                'stage': '(2/8)寻路计算-V4',
                 'message': '调用寻路算法...'
             })
 
@@ -840,7 +847,13 @@ def api_find_route():
                 show=False,
                 departure_time=dep_time_seconds
             )
-            
+
+            search_progress.update({
+                'percentage': 45,
+                'stage': '(3/8)寻路计算-V4',
+                'message': '检查寻路结果...'
+            })
+
             # 检查寻路结果
             if result_gen_image_false == []:
                 # 找不到路线
@@ -852,9 +865,21 @@ def api_find_route():
                 # 车站名称不正确
                 return jsonify({'error': '车站名称不正确，请检查输入'}), 400
             
+            search_progress.update({
+                'percentage': 55,
+                'stage': '(4/8)寻路计算-V4',
+                'message': '提取路线详情列表...'
+            })
+
             # 提取路线详情列表
             every_route_time = result_gen_image_false
             
+            search_progress.update({
+                'percentage': 60,
+                'stage': '(5/8)寻路计算-V4',
+                'message': '构建车站列表...'
+            })
+
             # 构建车站列表
             station_names = []
             for leg in every_route_time:
@@ -868,6 +893,12 @@ def api_find_route():
                     station_names.append(route_name)
                     station_names.append(end_station)
             
+            search_progress.update({
+                'percentage': 70,
+                'stage': '(6/8)寻路计算-V4',
+                'message': '计算总用时、乘车时间和等车时间...'
+            })
+
             # 计算总用时、乘车时间和等车时间
             if every_route_time:
                 total_time = every_route_time[-1][6] - every_route_time[0][5]  # 总用时 = 最后一站到站时间 - 第一站发车时间
@@ -878,7 +909,13 @@ def api_find_route():
                 riding_time = 0
                 waiting_time = 0
             
-            # 构建符合前端期望的结果数组
+            search_progress.update({
+                'percentage': 80,
+                'stage': '(7/8)寻路计算-V4',
+                'message': '构建用于前端展示的结果数组...'
+            })
+
+            # 构建用于前端展示的结果数组
             formatted_result = [
                 total_time,  # 总用时 (元素0)
                 station_names,  # 车站列表 (元素1)
@@ -886,6 +923,12 @@ def api_find_route():
                 riding_time,  # 乘车时间 (元素3)
                 waiting_time  # 等车时间 (元素4)
             ]
+            
+            search_progress.update({
+                'percentage': 90,
+                'stage': '(8/8)寻路计算-V4',
+                'message': '准备图片生成所需数据...'
+            })
             
             # 3. 将寻路结果和生成图片所需数据存储在缓存中，供后续图片生成使用
             # 生成唯一标识符
@@ -918,14 +961,17 @@ def api_find_route():
                 'image_base64': None
             }
             
+            # 初始化缓存使用状态
+            used_cache = False
+            
         else:
             # 使用v3版程序的寻路功能，直接调用main函数
             
             # 更新进度
             search_progress.update({
-                'percentage': 75,
+                'percentage': 15,
                 'stage': '寻路计算-V3',
-                'message': '准备调用寻路算法...'
+                'message': '准备所需参数...'
             })
             
             # 构建调用main函数所需的参数
@@ -936,6 +982,12 @@ def api_find_route():
             IN_THEORY = algorithm == 'theory'
             DETAIL = data.get('detail', True)
             
+            search_progress.update({
+                'percentage': 20,
+                'stage': '寻路计算-V3',
+                'message': '调用寻路算法...'
+            })
+
             # 调用mtr_pathfinder.py的main函数，gen_image=False
             result_gen_image_false = mtr_main_v3(
                 station1=data['start'],
@@ -965,6 +1017,12 @@ def api_find_route():
                 gen_image=False
             )
             
+            search_progress.update({
+                'percentage': 30,
+                'stage': '寻路计算-V3',
+                'message': '检查寻路结果...'
+            })
+
             # 检查寻路结果
             if result_gen_image_false in [False, None]:
                 if result_gen_image_false is False:
@@ -972,8 +1030,33 @@ def api_find_route():
                 else:
                     return jsonify({'error': '车站名称不正确，请检查输入'}), 400
             
+            search_progress.update({
+                'percentage': 35,
+                'stage': '寻路计算-V3',
+                'message': '提取寻路结果...'
+            })
+
             # 提取main函数返回的数据
             ert, shortest_distance = result_gen_image_false
+            
+            search_progress.update({
+                'percentage': 40,
+                'stage': '寻路计算-V3',
+                'message': '检查寻路结果是否有效...'
+            })
+
+            # 检查寻路结果是否有效
+            if ert in [False, None]:
+                if ert is False:
+                    return jsonify({'error': '找不到路线，请尝试调整选项'}), 400
+                else:
+                    return jsonify({'error': '车站名称不正确，请检查输入'}), 400
+            
+            search_progress.update({
+                'percentage': 45,
+                'stage': '寻路计算-V3',
+                'message': '加载数据文件...'
+            })
             
             # 加载数据文件，用于处理ert数据和获取版本信息
             if os.path.exists(LOCAL_FILE_PATH):
@@ -982,61 +1065,83 @@ def api_find_route():
             else:
                 return jsonify({'error': '车站数据不存在，请先更新数据'}), 400
             
+            search_progress.update({
+                'percentage': 50,
+                'stage': '寻路计算-V3',
+                'message': '获取数据文件版本信息...'
+            })
+            
             # 获取版本信息
             version1 = ''
             version2 = ''
             if os.path.exists(LOCAL_FILE_PATH):
-                version1 = datetime.fromtimestamp(
-                    os.path.getmtime(LOCAL_FILE_PATH)
-                ).strftime('%Y%m%d-%H%M')
+                version1 = time.strftime('%Y%m%d-%H%M',
+                                        time.gmtime(os.path.getmtime(LOCAL_FILE_PATH)))
             if os.path.exists(INTERVAL_PATH):
-                version2 = datetime.fromtimestamp(
-                    os.path.getmtime(INTERVAL_PATH)
-                ).strftime('%Y%m%d-%H%M')
+                version2 = time.strftime('%Y%m%d-%H%M',
+                                        time.gmtime(os.path.getmtime(INTERVAL_PATH)))
+            
+            search_progress.update({
+                'percentage': 55,
+                'stage': '寻路计算-V3',
+                'message': '设置寻路类型...'
+            })
             
             # 设置寻路类型
             route_type = RouteTypeV3.IN_THEORY if IN_THEORY else RouteTypeV3.WAITING
             
-            # 检查是否使用了缓存
-            used_cache = False
-            cached_graph = None  # 缓存的图
-            cache_conditions_met = (True and \
-                                  data.get('ignored_lines', []) == [] and \
-                                  not data.get('disable_boat', False) and \
-                                  not data.get('only_lrt', False) and \
-                                  not data.get('only_lines', []) and \
-                                  not data.get('avoid_stations', []) and \
-                                  route_type == RouteTypeV3.WAITING)
+            search_progress.update({
+                'percentage': 60,
+                'stage': '寻路计算-V3',
+                'message': '检查缓存使用状态...'
+            })
             
-            if cache_conditions_met:
-                # 生成与 create_graph 函数完全一致的缓存文件名
-                import hashlib
-                import pickle
-                m = hashlib.md5()
-                for s in config['ORIGINAL_IGNORED_LINES']:
-                    m.update(s.encode('utf-8'))
-                
-                # 确定配置参数
-                CALCULATE_HIGH_SPEED = not data.get('disable_high_speed', False)
-                CALCULATE_WALKING_WILD = data.get('enable_wild', False)
-                __version__ = '130'  # 与 mtr_pathfinder.py 中的版本号保持一致
-                
-                # 生成缓存文件名
-                filename = f'mtr_pathfinder_temp{os.sep}' + \
-                    f'3{int(CALCULATE_HIGH_SPEED)}{int(CALCULATE_WALKING_WILD)}' + \
-                    f'-{version1}-{version2}-{m.hexdigest()}-{__version__}.dat'
-                
-                # 检查缓存文件是否实际存在
-                if os.path.exists(filename):
-                    used_cache = True
-                    # 加载缓存图
-                    with open(filename, 'rb') as f:
-                        tup = pickle.load(f)
-                        cached_graph = tup[0]
+            # 检查是否使用了缓存
+            # 只检查用户是否额外添加了禁路线，不考虑全局禁路线
+            user_ignored_lines = data.get('ignored_lines', [])
+            global_ignored_lines = config['ORIGINAL_IGNORED_LINES']
+            
+            # 计算用户真正额外添加的禁路线：用户传入的禁路线减去全局禁路线
+            extra_ignored_lines = [line for line in user_ignored_lines if line not in global_ignored_lines]
+            
+            # 只有当用户没有额外添加禁路线时，才满足缓存条件
+            ignored_lines_ok = len(extra_ignored_lines) == 0
+            disable_boat_ok = not data.get('disable_boat', False)
+            only_lrt_ok = not data.get('only_lrt', False)
+            only_lines_ok = len(data.get('only_lines', [])) == 0
+            avoid_stations_ok = len(data.get('avoid_stations', [])) == 0
+            route_type_ok = route_type == RouteTypeV3.WAITING
+            
+            cache_conditions_met = (ignored_lines_ok and \
+                                  disable_boat_ok and \
+                                  only_lrt_ok and \
+                                  only_lines_ok and \
+                                  avoid_stations_ok and \
+                                  route_type_ok)
+               
+            # 生成与 create_graph 函数完全一致的缓存文件名
+            import hashlib
+            m = hashlib.md5()
+            # 注意：缓存文件名必须考虑原始禁路线，因为原始禁路线不同，生成的图也不同
+            for s in config['ORIGINAL_IGNORED_LINES']:
+                m.update(s.encode('utf-8'))
+            
+            # 确定配置参数
+            CALCULATE_HIGH_SPEED = not data.get('disable_high_speed', False)
+            CALCULATE_WALKING_WILD = data.get('enable_wild', False)
+            __version__ = '130'  # 与 mtr_pathfinder.py 中的版本号保持一致
+            
+            # 生成缓存文件名
+            filename = f'mtr_pathfinder_temp{os.sep}' + \
+                f'3{int(CALCULATE_HIGH_SPEED)}{int(CALCULATE_WALKING_WILD)}' + \
+                f'-{version1}-{version2}-{m.hexdigest()}-{__version__}.dat'
+            
+            # 简化缓存逻辑：只要满足缓存条件且缓存文件存在，就认为使用了缓存
+            used_cache = cache_conditions_met and os.path.exists(filename)
             
             # 更新进度
             search_progress.update({
-                'percentage': 75,
+                'percentage': 70,
                 'stage': '寻路计算-V3',
                 'message': '处理寻路结果...'
             })
@@ -1045,26 +1150,6 @@ def api_find_route():
             # 这里需要重新调用find_shortest_route，因为main函数(gen_image=False)没有返回这些信息
             # 但我们可以从ert中提取一些信息
             
-            # 从ert中获取waiting_time和riding_time
-            # 注意：ert的格式是[(start_station, end_station, line_color, line_name, end_info, dep_time, arr_time, type, platform, route_info)]
-            riding_time = sum(segment[6] - segment[5] for segment in ert) if ert else 0
-            if ert:
-                # 计算waiting_time：总用时 - 乘车时间
-                total_time = ert[-1][6] - ert[0][5] if len(ert) > 0 else 0
-                waiting_time = total_time - riding_time
-            else:
-                waiting_time = 0
-            
-            # 构建车站列表
-            station_names = []
-            if ert:
-                # 添加起点站
-                station_names.append(ert[0][0])
-                # 添加线路和站点
-                for segment in ert:
-                    station_names.append(segment[3])  # 线路名称
-                    station_names.append(segment[1])  # 终点站
-            
             # 处理ert数据，将route_id转换为线路名称，以便前端使用禁路线功能
             processed_ert = []
             for route_segment in ert:
@@ -1072,7 +1157,7 @@ def api_find_route():
                 processed_segment = route_segment.copy()
                 
                 # 获取route_id和线路名称
-                route_info = route_segment[9]  # route_info是第10个元素(索引9)
+                route_info = route_segment[10]  # route_info是第11个元素(索引10)
                 route_id = route_info[0] if route_info else None  # route_id是列表中的第一个元素
                 route_name = route_segment[3]  # 当前的线路名称
                 
@@ -1088,18 +1173,76 @@ def api_find_route():
                 
                 processed_ert.append(processed_segment)
             
-            # 构建符合前端期望的结果数组
+            # 处理"或"路线：将出发站和到达站相同的线路分组
+            route_groups = []
+            if processed_ert:
+                current_group = [processed_ert[0]]
+                current_start = processed_ert[0][0]
+                current_end = processed_ert[0][1]
+                
+                for segment in processed_ert[1:]:
+                    if segment[0] == current_start and segment[1] == current_end:
+                        # 同一组"或"路线
+                        current_group.append(segment)
+                    else:
+                        # 新的路线段
+                        route_groups.append(current_group)
+                        current_group = [segment]
+                        current_start = segment[0]
+                        current_end = segment[1]
+                # 添加最后一组
+                route_groups.append(current_group)
+            
+            # 计算riding_time和waiting_time
+            # 注意：ert中的时间字段是：
+            # segment[5]: duration (乘车时间)
+            # segment[6]: waiting (等待时间)
+            # 对于"或"路线，我们只计算一次等待时间
+            
+            # 从每个路线组中选择第一个线路来计算等待时间
+            unique_segments = []
+            for group in route_groups:
+                unique_segments.append(group[0])
+            
+            # 计算总乘车时间：所有线路的乘车时间之和
+            riding_time = sum(segment[5] for segment in processed_ert) if processed_ert else 0
+            
+            # 计算总等待时间：只计算每个路线组的等待时间（避免重复计算"或"路线的等待时间）
+            waiting_time = sum(segment[6] for segment in unique_segments) if unique_segments else 0
+            
+            # 总用时 = 最短路线的总时间（已经在shortest_distance中返回）
+            
+            # 构建车站列表
+            # 对于"或"路线，我们只显示一次
+            station_names = []
+            if processed_ert:
+                # 添加起点站
+                station_names.append(processed_ert[0][0])
+                # 添加线路和站点
+                for group in route_groups:
+                    # 只显示每组"或"路线的第一个线路
+                    segment = group[0]
+                    station_names.append(segment[3])  # 线路名称
+                    station_names.append(segment[1])  # 终点站
+
+            search_progress.update({
+                'percentage': 80,
+                'stage': '寻路计算-V3',
+                'message': '构建用于前端展示的结果数组...'
+            })            
+
+            # 构建用于前端展示的结果数组
             formatted_result = [
-                shortest_distance,  # 总用时 (元素0)
-                station_names,  # 车站列表 (元素1)
-                processed_ert,  # 处理后的路线详情 (元素2)
-                riding_time,  # 乘车时间 (元素3)
-                waiting_time  # 等车时间 (元素4)
+                shortest_distance,  # 总用时 (元素0) - 来自main函数返回的shortest_distance
+                station_names,  # 车站列表 (元素1) - 只显示每组"或"路线的第一个线路
+                processed_ert,  # 处理后的路线详情 (元素2) - 包含所有"或"路线
+                riding_time,  # 乘车时间 (元素3) - 所有线路的乘车时间之和
+                waiting_time  # 等车时间 (元素4) - 每个路线组的等待时间之和
             ]
 
             # 更新进度
             search_progress.update({
-                'percentage': 75,
+                'percentage': 90,
                 'stage': '寻路计算-V3',
                 'message': '准备图片生成所需数据...'
             })
@@ -1110,6 +1253,7 @@ def api_find_route():
             image_id = str(uuid.uuid4())
             
             # 存储寻路结果和生成图片所需数据
+            # 注意：图片生成需要所有线路信息，所以使用processed_ert
             image_cache[image_id] = {
                 'status': 'ready',
                 'algorithm': algorithm,
@@ -1161,19 +1305,15 @@ def api_find_route():
                 os.path.getmtime(config['INTERVAL_PATH_V3'])
             ).strftime('%Y%m%d-%H%M')
         
-        # 实时寻路模式下默认为False，其他模式保持之前计算出的值
-        if algorithm == 'real':
-            used_cache = False
-        
         # 图片将由/api/generate_image路由生成，这里只需要将状态设置为ready
         image_cache[image_id]['status'] = 'ready'
         
-        # 返回调整后的结果，包含寻路模式、计算用时、数据版本和缓存标志
-        return jsonify({
+        # 构建响应数据
+        response_data = {
             'result': formatted_result, 
             'algorithm': algorithm,
             'calc_time': calc_time,
-            'used_cache': used_cache,
+            'used_cache': used_cache if algorithm != 'real' else False,  # 只有实时寻路模式下重置为False
             'data_versions': {
                 'station_version': station_version,
                 'station_version_v4': station_version_v4,
@@ -1181,7 +1321,14 @@ def api_find_route():
                 'interval_version': interval_version
             },
             'image_id': image_id  # 返回图片的唯一标识符
-        })
+        }
+        
+        # 仅实时模式返回实际使用的出发时间
+        if algorithm == 'real' and actual_departure_time is not None:
+            response_data['departure_time'] = actual_departure_time
+        
+        # 返回调整后的结果，包含寻路模式、计算用时、数据版本和缓存标志
+        return jsonify(response_data)
     except Exception as e:
         import traceback
         import logging
@@ -1688,4 +1835,4 @@ if __name__ == '__main__':
     # 检查并更新数据文件
     check_and_update_data()
     
-    app.run(debug=False, port=5000)
+    app.run(debug=True, port=5000)
