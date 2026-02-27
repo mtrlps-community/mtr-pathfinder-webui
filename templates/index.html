@@ -897,30 +897,25 @@
                     const calcTime = resultData.calc_time;
                     const dataVersions = resultData.data_versions;
                     const usedCache = resultData.used_cache;
+                    const imageId = resultData.image_id;
+                    const departureTime = resultData.departure_time; // 从API响应中获取实际使用的出发时间
                     
                     // 检查是否需要重试（仅实时模式）
                     if (algorithm === 'real' && routeResult[2] && routeResult[2].length > 0) {
-                        // 计算计划出发时间
-                        const now = new Date();
-                        const currentSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-                        const depTimeInput = document.getElementById('dep-time');
-                        const depTime = depTimeInput && depTimeInput.value ? parseInt(depTimeInput.value) : 10;
-                        const plannedDepartureTime = (currentSeconds + depTime) % 86400;
-                        
                         // 获取第一条线路的出站时间
                         const firstRouteDeparture = routeResult[2][0][5] || 0;
                         
                         // 检查出发时间是否晚于第一条线路的出站时间
-                        if (plannedDepartureTime > firstRouteDeparture && retryCount < maxRetries) {
+                        if (departureTime > firstRouteDeparture && retryCount < maxRetries) {
                             retryCount++;
-                            console.log(`检测到出发时间（${plannedDepartureTime}）晚于第一条线路出站时间（${firstRouteDeparture}），正在重试...（${retryCount}/${maxRetries}）`);
+                            console.log(`检测到出发时间（${departureTime}）晚于第一条线路出站时间（${firstRouteDeparture}），正在重试...（${retryCount}/${maxRetries}）`);
                             // 递归调用，重试寻路
                             return findRouteWithRetry(data);
                         }
                     }
                     
-                    // 显示结果
-                    displayResultInternal(routeResult, algorithm, calcTime, dataVersions, usedCache, data.detail);
+                    // 显示结果，传递实际使用的出发时间
+                    displayResultInternal(routeResult, algorithm, calcTime, dataVersions, usedCache, data.detail, imageId, departureTime);
                 } else {
                     // 无结果或错误
                     noResult.classList.remove('hidden');
@@ -937,7 +932,7 @@
         }
         
         // 内部显示结果函数
-        function displayResultInternal(routeResult, algorithm, calcTime, dataVersions, usedCache, detail) {
+        function displayResultInternal(routeResult, algorithm, calcTime, dataVersions, usedCache, detail, imageId, departureTime) {
             result.classList.remove('hidden');
             
             // 解析routeresult数组，添加默认值处理
@@ -951,8 +946,24 @@
             // 确保routeDetails是数组，避免TypeError
             const routeDetails = Array.isArray(routeResult[2]) ? routeResult[2] : [];
         
-        // 生成结果图片
-        generateResultImage(stationNames, routeDetails, algorithm);
+        // 处理结果图片
+        const imageLoading = document.getElementById('image-loading');
+        const viewImageBtn = document.getElementById('view-image-btn');
+        const downloadImageBtn = document.getElementById('download-image-btn');
+        
+        // 更新全局图片ID变量
+        latestImageId = imageId;
+        
+        // 显示加载提示，隐藏图片按钮
+        imageLoading.classList.remove('hidden');
+        viewImageBtn.classList.add('hidden');
+        downloadImageBtn.classList.add('hidden');
+        
+        // 如果有imageId，开始异步加载图片
+        if (imageId) {
+            // 调用异步函数加载图片
+            loadImageAsync(imageId);
+        }
         
         // 清空现有内容
         const detailsContainer = document.getElementById('route-details');
@@ -1177,8 +1188,8 @@
             // 使用更灵活的方式解析，适应不同长度的routeDetail数组
             if (routeDetail.length >= 11) {
                 // v3版本 - 完整格式
-                var [, , color = '#4a90e2', routeName = '', terminus = '', duration = 0, segmentWaitingTime = 0, depInterval = 0, trainType = 'train_normal', plat = '', tempOriginalRouteName = ''] = routeDetail;
-                originalRouteName = tempOriginalRouteName;
+                var [, , color = '#4a90e2', routeName = '', terminus = '', duration = 0, segmentWaitingTime = 0, depInterval = 0, trainType = 'train_normal', plat = '', extraInfo = ''] = routeDetail;
+                originalRouteName = routeName; // 直接使用路线名作为原始路线名
                 platform = plat;
                 departureInterval = depInterval;
             } else {
@@ -1186,10 +1197,10 @@
                 // 提取已知位置的字段
                 var [, , color = '#4a90e2', routeName = '', terminus = '', duration = 0, segmentWaitingTime = 0, trainType = 'train_normal'] = routeDetail;
                 
-                // 尝试提取站台编号和原始路线名，不管数组长度如何
-                // 对于v4版本，站台编号在第9个位置（索引8），原始路线名在第10个位置（索引9）
+                // 尝试提取站台编号，不管数组长度如何
+                // 对于v4版本，站台编号在第9个位置（索引8）
                 platform = routeDetail[8] || '';
-                originalRouteName = routeDetail[9] || routeName;
+                originalRouteName = routeName; // 直接使用路线名作为原始路线名
             }
             
             // 处理路线名称，只保留中文和英文，去除方向和分隔符
@@ -1507,12 +1518,8 @@
             const departureTimeDiv = document.createElement('div');
             departureTimeDiv.className = 'time-stamp departure-time';
             
-            // 计算计划出发时间：当前时间加上用户输入的秒数（默认10秒）
-            const now = new Date();
-            const currentSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-            const depTimeInput = document.getElementById('dep-time');
-            const depTime = depTimeInput && depTimeInput.value ? parseInt(depTimeInput.value) : 10;
-            const plannedDepartureTime = (currentSeconds + depTime) % 86400;
+            // 使用后端返回的实际出发时间
+            const plannedDepartureTime = departureTime || 0;
             
             departureTimeDiv.textContent = `出发时间: ${formatTimestamp(plannedDepartureTime)}`;
             detailsContainer.appendChild(departureTimeDiv);
@@ -1906,76 +1913,81 @@
         return nameMap[trainType] || '列车';
     }
     
-    // 生成结果图片
-    async function generateResultImage(stationNames, routeDetails, algorithm) {
+    // 生成结果图片 - 已废弃，现在直接使用api_find_route返回的imageBase64
+    function generateResultImage(stationNames, routeDetails, algorithm) {
+        // 此函数已废弃，所有图片处理逻辑已移至displayResultInternal函数
+        console.warn('generateResultImage函数已废弃');
+    }
+    
+    // 异步加载图片函数
+    async function loadImageAsync(imageId) {
         const imageLoading = document.getElementById('image-loading');
         const viewImageBtn = document.getElementById('view-image-btn');
         const downloadImageBtn = document.getElementById('download-image-btn');
         
+        // 最大重试次数
+        const maxRetries = 30;
+        // 重试间隔（毫秒）
+        const retryInterval = 1000;
+        
         try {
-            // 显示加载提示
-            imageLoading.classList.remove('hidden');
-            viewImageBtn.classList.add('hidden');
-            downloadImageBtn.classList.add('hidden');
-            
-            // 获取当前表单数据
-            const formData = new FormData(document.getElementById('route-form'));
-            
-            const data = {
-                start: formData.get('start'),
-                end: formData.get('end'),
-                ignored_lines: formData.get('ignored_lines').split(/[,;；]/).map(s => s.trim()).filter(Boolean),
-                only_lines: formData.get('only_lines').split(/[,;；]/).map(s => s.trim()).filter(Boolean),
-                avoid_stations: formData.get('avoid_stations').split(/[,;；]/).map(s => s.trim()).filter(Boolean),
-                disable_high_speed: formData.get('disable_high_speed') === 'on',
-                disable_boat: formData.get('disable_boat') === 'on',
-                enable_wild: formData.get('enable_wild') === 'on',
-                only_lrt: formData.get('only_lrt') === 'on',
-                detail: formData.get('detail') === 'on',
-                algorithm: algorithm
-            };
-            
-            // 处理出发时间参数，为空时传递null
-            const depTime = formData.get('dep_time');
-            if (depTime && depTime.trim() !== '') {
-                data.dep_time = parseInt(depTime);
-            } else {
-                data.dep_time = null;
-            }
-            
-            // 添加客户端当前时间（秒数）
-            const now = new Date();
-            const currentSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-            data.client_time = currentSeconds;
-            
-            // 调用API生成图片
-            const response = await fetch('/api/generate_image', {
+            // 首先调用api_generate_image路由触发图片生成
+            const generateResponse = await fetch('/api/generate_image', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify({ image_id: imageId })
             });
             
-            const result = await response.json();
-            
-            if (result.success) {
-                // 隐藏加载提示，显示图片按钮
+            if (!generateResponse.ok) {
+                const generateResult = await generateResponse.json();
+                console.error('触发图片生成失败:', generateResult.error);
                 imageLoading.classList.add('hidden');
-                viewImageBtn.classList.remove('hidden');
-                downloadImageBtn.classList.remove('hidden');
-            } else {
-                // 隐藏加载提示
-                imageLoading.classList.add('hidden');
+                return;
             }
         } catch (error) {
-            console.error('生成图片失败:', error);
-            // 生成失败时隐藏加载提示，确保按钮仍然隐藏
+            console.error('触发图片生成失败:', error);
             imageLoading.classList.add('hidden');
-            viewImageBtn.classList.add('hidden');
-            downloadImageBtn.classList.add('hidden');
+            return;
         }
+        
+        // 定期检查图片生成状态
+        for (let retry = 0; retry < maxRetries; retry++) {
+            try {
+                // 检查图片生成状态
+                const response = await fetch(`/api/get_image?image_id=${imageId}`);
+                
+                if (response.status === 202) {
+                    // 图片还在生成中，等待一段时间后重试
+                    await new Promise(resolve => setTimeout(resolve, retryInterval));
+                    continue;
+                } else if (response.ok) {
+                    // 图片生成成功，隐藏加载提示，显示图片按钮
+                    imageLoading.classList.add('hidden');
+                    viewImageBtn.classList.remove('hidden');
+                    downloadImageBtn.classList.remove('hidden');
+                    return;
+                } else {
+                    // 其他错误，隐藏加载提示，显示错误信息
+                    const result = await response.json();
+                    console.error('图片生成失败:', result.error);
+                    imageLoading.classList.add('hidden');
+                    return;
+                }
+            } catch (error) {
+                console.error('检查图片状态失败:', error);
+                await new Promise(resolve => setTimeout(resolve, retryInterval));
+            }
+        }
+        
+        // 重试次数超过最大值，隐藏加载提示，显示错误信息
+        console.error('图片生成超时');
+        imageLoading.classList.add('hidden');
     }
+    
+    // 全局变量，用于存储最新的图片ID
+    let latestImageId = null;
     
     // 图片查看和下载功能
     document.addEventListener('DOMContentLoaded', function() {
@@ -1991,18 +2003,22 @@
         // 查看图片按钮点击事件
         viewImageBtn.addEventListener('click', async function() {
             // 设置图片源
-            resultImage.src = '/api/get_image?' + new Date().getTime(); // 添加时间戳防止缓存
-            // 显示模态框
-            imageModal.classList.remove('hidden');
+            if (latestImageId) {
+                resultImage.src = `/api/get_image?image_id=${latestImageId}&timestamp=${new Date().getTime()}`;
+                // 显示模态框
+                imageModal.classList.remove('hidden');
+            }
         });
         
         // 下载图片按钮点击事件
         downloadImageBtn.addEventListener('click', function() {
-            // 创建下载链接
-            const link = document.createElement('a');
-            link.href = '/api/get_image';
-            link.download = `mtr-path-${new Date().getTime()}.png`;
-            link.click();
+            if (latestImageId) {
+                // 创建下载链接
+                const link = document.createElement('a');
+                link.href = `/api/get_image?image_id=${latestImageId}`;
+                link.download = `mtr-path-${new Date().getTime()}.png`;
+                link.click();
+            }
         });
         
         // 关闭图片模态框

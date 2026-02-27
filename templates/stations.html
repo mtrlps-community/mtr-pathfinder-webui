@@ -71,8 +71,8 @@
 
 {% block scripts %}
 <script>
-    // 车站数据
-    let stationsData = {{ stations|tojson }};
+    // 车站数据 - 使用更简洁的JSON格式
+    let stationsData = {{ stations|tojson|safe }};
     // 确保stationsData是数组
     if (!Array.isArray(stationsData)) {
         stationsData = [];

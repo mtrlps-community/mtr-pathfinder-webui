@@ -76,6 +76,15 @@
                     <input type="number" id="max-wild-blocks" class="form-input" value="{{ config['MAX_WILD_BLOCKS'] }}" min="0">
                 </div>
                 
+                <!-- 最大寻路小时数 -->
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2" for="max-hour">
+                        <i class="fa-solid fa-clock mr-1"></i> 最大寻路小时数 (MAX_HOUR)
+                    </label>
+                    <p class="text-sm text-gray-500 mb-2">实时寻路模式下，计算的最大小时数，默认值为3</p>
+                    <input type="number" id="max-hour" class="form-input" value="{{ config['MAX_HOUR'] }}" min="1" max="24">
+                </div>
+                
                 <!-- 出站换乘增加 -->
                 <div>
                     <label class="block text-gray-700 font-medium mb-2" for="transfer-addition">
@@ -310,6 +319,7 @@
         const link = document.getElementById('link-input').value;
         const mtrVer = document.getElementById('mtr-ver-select').value;
         const maxWildBlocks = parseInt(document.getElementById('max-wild-blocks').value);
+        const maxHour = parseInt(document.getElementById('max-hour').value);
         const umamiScriptUrl = document.getElementById('umami-script-url').value;
         const umamiWebsiteId = document.getElementById('umami-website-id').value;
         
@@ -337,6 +347,7 @@
                     link, 
                     mtr_ver: mtrVer,
                     max_wild_blocks: maxWildBlocks,
+                    max_hour: maxHour,
                     transfer_addition: transferAddition,
                     wild_addition: wildAddition,
                     station_table: stationTable,
