@@ -1112,8 +1112,8 @@ def remove_duplicate(data, ert):
         old_leg = list(sorted(ert[i], key=lambda x: x[4][0]))
         for j in range(i + 1, len(ert)):
             new_leg = list(sorted(ert[j], key=lambda x: x[4][0]))
-            if [x[2:5] + x[6:9] for x in old_leg] == \
-                    [x[2:5] + x[6:9] for x in new_leg]:
+            if [x[2:4] + [x[4][3]] + x[6:9] for x in old_leg] == \
+                    [x[2:4] + [x[4][3]] + x[6:9] for x in new_leg]:
                 for k in range(len(old_leg)):
                     old_leg[k][1] = new_leg[k][1]
                     old_leg[k][5] += new_leg[k][5]
@@ -1147,9 +1147,13 @@ def remove_duplicate(data, ert):
                             break
 
                     dwell = sum(dwells[i1 + 1:i2])
+                    old_leg[k][4] = old_leg[k][4][:3]
                     old_leg[k][5] += dwell
 
         new_ert.append(old_leg)
+
+    if len(ert) - 1 not in removed_legs:
+        new_ert.append(ert[-1])
 
     every_route_time = list(chain(*new_ert))
     return every_route_time
@@ -1259,8 +1263,8 @@ def process_path(G: nx.MultiDiGraph, path: list, shortest_distance: int,
                         t1_name = t2_name = terminus_name
                     else:
                         t1_name = terminus_name.split('|')[0]
-                        t2_name = terminus_name.split('|')[1].replace('|',
-                                                                      ' ')
+                        t2_name = terminus_name.split('|')[1]
+                        t2_name = t2_name.replace('|', ' ')
 
                     if z['circular'] == 'cw':
                         if next_id is None:
@@ -1283,6 +1287,13 @@ def process_path(G: nx.MultiDiGraph, path: list, shortest_distance: int,
                     else:
                         terminus = (t1_name, t2_name)
 
+                    if MTR_VER == 4 and route_type == RouteType.IN_THEORY:
+                        terminus = list(terminus)
+                        if len(terminus) == 2:
+                            terminus += ['']
+
+                        terminus += [z['circular']]
+
                     color = hex(z['color']).lstrip('0x').rjust(6, '0')
                     train_type = z['type']
                     if MTR_VER == 4:
@@ -1294,6 +1305,10 @@ def process_path(G: nx.MultiDiGraph, path: list, shortest_distance: int,
                 color = '000000'
                 route = route_name
                 terminus = (route_name.split('，用时')[0], 'Walk')
+                if MTR_VER == 4 and route_type == RouteType.IN_THEORY:
+                    terminus = list(terminus)
+                    terminus += ['', '']
+
                 train_type = None
                 route_id = None
 
