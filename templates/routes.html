@@ -58,7 +58,7 @@
                                 {{ route.get('route_number', '') }}
                             </td>
                             <td class="col-stations whitespace-nowrap" style="width: 100px;">
-                                {{ route.get('stations', [])|length }}
+                                {{ route.get('station_count', 0) }}
                             </td>
                         </tr>
                     {% endfor %}
@@ -164,7 +164,7 @@
                         ${route.route_number || ''}
                     </td>
                     <td class="col-stations whitespace-nowrap">
-                        ${route.stations ? route.stations.length : 0}
+                        ${route.station_count || 0}
                     </td>
                 </tr>
             `).join('');
@@ -281,8 +281,8 @@
                 let aVal, bVal;
                 
                 if (sortField === 'stations') {
-                    aVal = a.stations ? a.stations.length : 0;
-                    bVal = b.stations ? b.stations.length : 0;
+                    aVal = a.station_count || 0;
+                    bVal = b.station_count || 0;
                 } else {
                     aVal = a[sortField] || '';
                     bVal = b[sortField] || '';

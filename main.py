@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, session, redirect, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_file, send_from_directory, session, redirect, url_for
 import os
 import json
 import hashlib
@@ -150,6 +150,11 @@ PNG_PATH = 'mtr_pathfinder_data'
 def inject_config():
     return dict(config=config, request=request)
 
+# 专门处理favicon.ico请求
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory('.', 'favicon.ico', mimetype='image/x-icon')
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -215,7 +220,19 @@ def stations():
         if isinstance(station, dict) and 'name' in station:
             station['name'] = station['name'].replace('|', ' ')
     
-    return render_template('stations.html', stations=stations_data)
+    # 数据字段过滤：只返回前端页面需要的字段
+    filtered_stations = []
+    for station in stations_data:
+        if isinstance(station, dict):
+            filtered_station = {
+                'id': station.get('id', 'N/A'),
+                'name': station.get('name', 'N/A'),
+                'line_count': station.get('line_count', 0),
+                'branch_count': station.get('branch_count', 0)
+            }
+            filtered_stations.append(filtered_station)
+    
+    return render_template('stations.html', stations=filtered_stations)
 
 @app.route('/stations/<station_id>')
 def station_detail(station_id):
@@ -435,7 +452,24 @@ def routes():
             line_names.add(route['name'])
     line_count = len(line_names)
     
-    return render_template('routes.html', routes=routes_data, interval_data=interval_data, line_count=line_count, branch_count=branch_count)
+    # 数据字段过滤：只返回前端页面需要的字段
+    filtered_routes = []
+    for route in routes_data:
+        if isinstance(route, dict):
+            # 只计算车站数量，不传递完整的车站列表
+            stations = route.get('stations', [])
+            station_count = len(stations)
+            
+            filtered_route = {
+                'id': route.get('id', 'N/A'),
+                'name': route.get('name', 'N/A'),
+                'route_number': route.get('route_number', ''),
+                'number': route.get('number', ''),
+                'station_count': station_count
+            }
+            filtered_routes.append(filtered_route)
+    
+    return render_template('routes.html', routes=filtered_routes, interval_data=interval_data, line_count=line_count, branch_count=branch_count)
 
 @app.route('/routes/<route_id>')
 def route_detail(route_id):
@@ -1635,6 +1669,9 @@ def api_update_config():
     
     if 'max_wild_blocks' in data:
         config['MAX_WILD_BLOCKS'] = int(data['max_wild_blocks'])
+    
+    if 'max_hour' in data:
+        config['MAX_HOUR'] = int(data['max_hour'])
     
     if 'transfer_addition' in data:
         config['TRANSFER_ADDITION'] = data['transfer_addition']
