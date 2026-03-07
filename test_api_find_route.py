@@ -26,8 +26,8 @@ if __name__ == '__main__':
     print("=" * 70)
     
     try:
-        # 发送POST请求
-        response = requests.post(API_URL, json=params)
+        # 发送POST请求，不使用代理
+        response = requests.post(API_URL, json=params, proxies={'http': None, 'https': None})
         response.raise_for_status()  # 检查请求是否成功
         
         # 打印原始JSON结果

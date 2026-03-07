@@ -1186,13 +1186,21 @@
             let departureInterval = 0;
             
             // 使用更灵活的方式解析，适应不同长度的routeDetail数组
-            if (routeDetail.length >= 11) {
-                // v3版本 - 完整格式
+            if (routeDetail.length >= 12) {
+                // v3版本 - 完整格式，包含禁路线字符串
+                var [, , color = '#4a90e2', routeName = '', terminus = '', duration = 0, segmentWaitingTime = 0, depInterval = 0, trainType = 'train_normal', plat = '', extraInfo = '', banRouteString = ''] = routeDetail;
+                // v3版本中，原始路线名在索引10位置
+                originalRouteName = routeDetail[10] || routeName;
+                platform = plat;
+                departureInterval = depInterval;
+            } else if (routeDetail.length >= 11) {
+                // v3版本 - 完整格式（旧版本，没有禁路线字符串）
                 var [, , color = '#4a90e2', routeName = '', terminus = '', duration = 0, segmentWaitingTime = 0, depInterval = 0, trainType = 'train_normal', plat = '', extraInfo = ''] = routeDetail;
                 // v3版本中，原始路线名在索引10位置
                 originalRouteName = routeDetail[10] || routeName;
                 platform = plat;
                 departureInterval = depInterval;
+                banRouteString = '';
             } else {
                 // v4版本（实时模式）和其他情况
                 // 提取已知位置的字段
@@ -1203,6 +1211,7 @@
                 platform = routeDetail[8] || '';
                 // v4版本中，原始路线名在索引9位置
                 originalRouteName = routeDetail[9] || routeName;
+                banRouteString = '';
             }
             
             // 处理路线名称，只保留中文和英文，去除方向和分隔符
@@ -1340,22 +1349,29 @@
                     const currentValue = ignoredLinesInput.value;
                     console.log('当前禁路线值:', currentValue);
                     
-                    // 使用后端返回的原始路线名称，并进行处理
-                    let routeToAdd = originalRouteName;
-                    console.log('原始路线名称:', originalRouteName);
+                    // 使用后端提供的禁路线字符串
+                    let routeToAdd = banRouteString;
+                    console.log('后端提供的禁路线字符串:', banRouteString);
                     
-                    // 处理原始路线名称：确保是字符串
-                    if (Array.isArray(routeToAdd)) {
-                        // 如果是数组，使用routeName代替
-                        routeToAdd = routeName;
-                        console.log('使用routeName代替数组:', routeToAdd);
+                    // 如果后端没有提供禁路线字符串，则使用旧方法处理
+                    if (!routeToAdd) {
+                        // 使用后端返回的原始路线名称，并进行处理
+                        routeToAdd = originalRouteName;
+                        console.log('使用原始路线名称作为备选:', originalRouteName);
+                        
+                        // 处理原始路线名称：确保是字符串
+                        if (Array.isArray(routeToAdd)) {
+                            // 如果是数组，使用routeName代替
+                            routeToAdd = routeName;
+                            console.log('使用routeName代替数组:', routeToAdd);
+                        }
+                        
+                        // 处理原始路线名称：
+                        // 1. 删去||后面的方向信息
+                        // 2. 只保留第一条|前面的内容，使用一种语言的线路名
+                        routeToAdd = routeToAdd.split('||')[0].split('|')[0].trim();
+                        console.log('处理后的路线名称:', routeToAdd);
                     }
-                    
-                    // 处理原始路线名称：
-                    // 1. 删去||后面的方向信息
-                    // 2. 只保留第一条|前面的内容，使用一种语言的线路名
-                    routeToAdd = routeToAdd.split('||')[0].split('|')[0].trim();
-                    console.log('处理后的路线名称:', routeToAdd);
                     
                     // 检查是否已存在
                     const lines = currentValue.split(/[,;；]/).map(line => line.trim()).filter(Boolean);
@@ -1827,22 +1843,36 @@
                         const currentValue = ignoredLinesInput.value;
                         console.log('当前禁路线值:', currentValue);
                         
-                        // 使用原始路线信息，而不是显示名称
-                        let routeToAdd = routeInfo;
-                        console.log('原始路线名称:', routeInfo);
-                        
-                        // 处理原始路线名称：确保是字符串
-                        if (Array.isArray(routeToAdd)) {
-                            // 如果是数组，使用processedRouteInfo代替
-                            routeToAdd = processedRouteInfo;
-                            console.log('使用processedRouteInfo代替数组:', routeToAdd);
+                        // 尝试从当前路线详细信息中获取后端提供的禁路线字符串
+                        let banRouteString = '';
+                        if (matchedRouteDetails.length > 0) {
+                            // 如果有匹配的路线详细信息，从第一条中获取禁路线字符串
+                            banRouteString = matchedRouteDetails[0][11] || '';
                         }
                         
-                        // 处理原始路线名称：
-                        // 1. 删去||后面的方向信息
-                        // 2. 只保留第一条|前面的内容，使用一种语言的线路名
-                        routeToAdd = routeToAdd.split('||')[0].split('|')[0].trim();
-                        console.log('处理后的路线名称:', routeToAdd);
+                        // 使用后端提供的禁路线字符串（如果有），否则使用原始路线信息
+                        let routeToAdd = banRouteString;
+                        console.log('后端提供的禁路线字符串:', banRouteString);
+                        
+                        // 如果后端没有提供禁路线字符串，则使用旧方法处理
+                        if (!routeToAdd) {
+                            // 使用原始路线信息，而不是显示名称
+                            routeToAdd = routeInfo;
+                            console.log('使用原始路线信息作为备选:', routeInfo);
+                            
+                            // 处理原始路线名称：确保是字符串
+                            if (Array.isArray(routeToAdd)) {
+                                // 如果是数组，使用processedRouteInfo代替
+                                routeToAdd = processedRouteInfo;
+                                console.log('使用processedRouteInfo代替数组:', routeToAdd);
+                            }
+                            
+                            // 处理原始路线名称：
+                            // 1. 删去||后面的方向信息
+                            // 2. 只保留第一条|前面的内容，使用一种语言的线路名
+                            routeToAdd = routeToAdd.split('||')[0].split('|')[0].trim();
+                            console.log('处理后的路线名称:', routeToAdd);
+                        }
                         
                         // 检查是否已存在
                         const lines = currentValue.split(/[,;；]/).map(line => line.trim()).filter(Boolean);
