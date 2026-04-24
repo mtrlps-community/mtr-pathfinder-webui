@@ -1,0 +1,1039 @@
+/* 全局样式 */
+:root {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #252525;
+    --bg-tertiary: #333333;
+    --card-bg: #2a2a2a;
+    --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --text-primary: #ffffff;
+    --text-secondary: #b0b0b0;
+    --text-tertiary: #808080;
+    --accent-primary: #3b82f6;
+    --accent-secondary: #10b981;
+    --border-color: #404040;
+    --hover-bg: #333333;
+    --error-bg: #371515;
+    --error-border: #6b2121;
+    --error-text: #fca5a5;
+    --color-yellow: #f59e0b;
+    --color-green: #7ed321;
+    --color-red: #d0021b;
+}
+
+/* 基本元素样式 */
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary);
+}
+
+label {
+    color: var(--text-primary);
+}
+
+button {
+    color: var(--text-primary);
+}
+
+span {
+    color: var(--text-primary);
+}
+
+/* 超链接样式 */
+a {
+    color: var(--accent-primary);
+    transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+a:hover {
+    opacity: 0.8;
+}
+
+/* 表单样式 */
+.form-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: border-color 0.2s;
+    resize: none;
+    min-height: 35px;
+    line-height: 1.5;
+    overflow: hidden;
+}
+
+/* 在flex容器中，让form-input元素能正确收缩 */
+.flex .form-input {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 确保flex容器中的元素不换行 */
+.flex {
+    flex-wrap: nowrap;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+/* 按钮样式 */
+.btn-primary {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    background-color: #2563eb;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: #1d4ed8;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.btn-secondary {
+    padding: 8px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-secondary:hover {
+    background-color: var(--hover-bg);
+}
+
+/* 卡片样式 */
+.card {
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: var(--card-shadow);
+}
+
+/* 错误信息样式 */
+.error {
+    padding: 10px;
+    border-radius: 4px;
+    background-color: var(--error-bg);
+    border: 1px solid var(--error-border);
+    color: var(--error-text);
+    margin-bottom: 16px;
+}
+
+/* 加载状态样式 */
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 0;
+}
+
+/* 结果容器样式 */
+.result-container {
+    margin-top: 20px;
+}
+
+/* 寻路结果样式 */
+.time-info {
+    margin-bottom: 16px;
+}
+
+.time-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.time-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-radius: 8px;
+    background-color: var(--bg-secondary);
+}
+
+.time-icon {
+    margin-right: 12px;
+    font-size: 18px;
+    color: var(--accent-primary);
+}
+
+.time-content {
+    flex: 1;
+}
+
+.time-content strong {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
+
+.time-content span {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+/* 路线卡片样式 */
+.route-card {
+    margin-bottom: 8px;
+    border-radius: 8px;
+    background-color: var(--card-bg);
+    box-shadow: var(--card-shadow);
+    border-left: 4px solid var(--accent-primary);
+    padding: 12px;
+}
+
+.route-info {
+    border-left-color: var(--accent-primary);
+}
+
+.route-tag {
+    background-color: transparent;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.route-name {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.route-destination {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.route-direction {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.route-time {
+    font-size: 14px;
+    color: var(--accent-primary);
+    font-weight: 500;
+    margin-top: 8px;
+}
+
+.direction-indicator {
+    display: inline-block;
+    margin-left: 8px;
+    white-space: normal;
+    flex: 1 1 0%;
+    min-width: 0px;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.time-detail {
+    margin-top: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.time-value {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.no-result {
+    text-align: center;
+    padding: 40px 0;
+    color: var(--text-tertiary);
+}
+
+.platform-info {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    margin-bottom: 8px;
+}
+
+.platform-tag {
+    margin-left: 8px;
+    opacity: 0.8;
+    padding: 1px 6px;
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.icon-span {
+    margin-right: 8px;
+}
+
+.route-type {
+    margin-left: 8px;
+    opacity: 0.8;
+    padding: 1px 6px;
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.right-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-left: auto;
+}
+
+.detail-btn, .close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.detail-btn:hover, .close-btn:hover {
+    background-color: var(--hover-bg);
+}
+
+/* 时刻表结果样式 */
+#timetable-result {
+    padding: 16px;
+}
+
+#timetable-result .route-card {
+    margin-bottom: 8px;
+    border-radius: 8px;
+    background-color: var(--card-bg);
+    box-shadow: var(--card-shadow);
+    border-left: 4px solid var(--accent-primary);
+    padding: 12px;
+}
+
+#timetable-result .route-info {
+    border-left-color: var(--accent-primary);
+}
+
+#timetable-result .route-tag {
+    background-color: transparent;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+#timetable-result .route-name {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+#timetable-result .route-destination {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+#timetable-result .route-direction {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+#timetable-result .route-time {
+    font-size: 14px;
+    color: var(--accent-primary);
+    font-weight: 500;
+    margin-top: 8px;
+}
+
+#timetable-result .direction-indicator {
+    display: inline-block;
+    margin-left: 8px;
+    white-space: normal;
+    flex: 1 1 0%;
+    min-width: 0px;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+#timetable-result .time-detail {
+    margin-top: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#timetable-result .time-value {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+#timetable-result .no-result {
+    text-align: center;
+    padding: 40px 0;
+    color: var(--text-tertiary);
+}
+
+#timetable-result .platform-info {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    margin-bottom: 8px;
+}
+
+#timetable-result .platform-tag {
+    margin-left: 8px;
+    opacity: 0.8;
+    padding: 1px 6px;
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+#timetable-result .icon-span {
+    margin-right: 8px;
+}
+
+#timetable-result .route-type {
+    margin-left: 8px;
+    opacity: 0.8;
+    padding: 1px 6px;
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+#timetable-result .right-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-left: auto;
+}
+
+#timetable-result .detail-btn, #timetable-result .close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+#timetable-result .detail-btn:hover, #timetable-result .close-btn:hover {
+    background-color: var(--hover-bg);
+}
+
+/* 车站建议列表样式 */
+.station-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 10;
+}
+
+.station-suggestion-item {
+    padding: 6px 8px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    transition: background-color 0.2s;
+    color: var(--text-primary);
+}
+
+.station-suggestion-item:hover {
+    background-color: var(--hover-bg);
+}
+
+/* 模态框样式 */
+.modal {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+}
+
+.modal-content {
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+/* 导航栏样式 */
+.nav-item {
+    padding: 0.5rem 1rem;
+    color: var(--text-secondary);
+    transition: color 0.2s, background-color 0.2s;
+    border-radius: 0.375rem;
+}
+
+.nav-item:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+.nav-item.active {
+    background-color: #2563eb;
+    color: white;
+    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
+}
+
+/* 导航链接样式 */
+.nav-links {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* 算法选择器样式 */
+.algorithm-selector {
+    margin-bottom: 16px;
+}
+
+.algorithm-tabs {
+    width: 100%;
+}
+
+.algorithm-tabs .flex {
+    background-color: var(--bg-tertiary);
+    border-radius: 0.375rem;
+    padding: 0.25rem;
+    gap: 0.25rem;
+}
+
+.algorithm-tab {
+    flex: 1;
+    padding: 0.5rem 1rem;
+    text-align: center;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.algorithm-tab:hover {
+    background-color: var(--hover-bg);
+}
+
+.algorithm-tab.active {
+    background-color: var(--accent-primary);
+    color: white;
+    font-weight: 500;
+}
+
+.algorithm-type-display {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+/* 寻路结果详细样式 */
+.time-info {
+    padding: 0 0 12px 0;
+    margin-bottom: 12px;
+}
+
+.time-info h3 {
+    margin-bottom: 12px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.time-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
+}
+
+.time-item {
+    display: flex;
+    align-items: center;
+    background: var(--card-bg);
+    padding: 8px 12px;
+    border-radius: 4px;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.time-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.time-item.total-time {
+    border-left: 3px solid var(--accent-primary);
+}
+
+.time-item.traveling-time {
+    border-left: 3px solid var(--accent-secondary);
+}
+
+.time-item.waiting-time {
+    border-left: 3px solid var(--color-yellow);
+}
+
+.time-icon {
+    font-size: 1.2rem;
+    margin-right: 8px;
+}
+
+.time-icon i {
+    color: var(--text-primary);
+}
+
+.time-content {
+    flex: 1;
+}
+
+.time-content strong {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 1px;
+    color: var(--text-primary);
+}
+
+/* 数据版本特殊样式 */
+.time-item.data-version .time-content strong {
+    font-size: 0.75rem;
+}
+
+/* 调整时间网格，确保数据版本项正确排列 */
+.time-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+/* 让数据版本项在一行中显示两个 */
+@media (min-width: 640px) {
+    .time-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    
+    /* 理论模式下：总用时和计算用时各占2列，占满第一行 */
+    .time-grid.theory-mode .time-item.total-time,
+    .time-grid.theory-mode .time-item.calc-time {
+        grid-column: span 2;
+    }
+    
+    /* 非理论模式下：前四个非数据版本项各占一列 */
+    .time-grid:not(.theory-mode) .time-item.total-time,
+    .time-grid:not(.theory-mode) .time-item.traveling-time,
+    .time-grid:not(.theory-mode) .time-item.waiting-time,
+    .time-grid:not(.theory-mode) .time-item.calc-time {
+        grid-column: span 1;
+    }
+    
+    /* 数据版本项两个一组，占满一行 */
+    .time-item.data-version {
+        grid-column: span 2;
+    }
+}
+
+.time-item.total-time .time-content strong {
+    color: var(--accent-primary);
+}
+
+.time-item.traveling-time .time-content strong {
+    color: var(--accent-secondary);
+}
+
+.time-item.waiting-time .time-content strong {
+    color: var(--color-yellow);
+}
+
+.time-content span {
+    color: var(--text-tertiary);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* 路线步骤 */
+.route-step {
+    margin-bottom: 8px;
+}
+
+.route-step.alternative {
+    margin-left: 30px;
+}
+
+.station {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--card-bg);
+}
+
+.station::before {
+    content: "";
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    margin-right: 10px;
+    border: 2px solid;
+}
+
+/* 起点站 - 绿色空心圆圈 */
+.start-station .station::before {
+    border-color: var(--color-green);
+    background-color: transparent;
+}
+
+/* 终点站 - 红色空心圆圈 */
+.end-station .station::before {
+    border-color: var(--color-red);
+    background-color: transparent;
+}
+
+/* 中间站 - 黑色空心圆圈 */
+.route-step:not(.start-station):not(.end-station) .station::before {
+    border-color: var(--text-primary);
+    background-color: transparent;
+}
+
+.route-info {
+    margin-bottom: 12px;
+    border-left: 6px solid;
+    padding-left: 12px;
+    border-radius: 0;
+}
+
+.route-info > :not(:last-child) {
+    margin-bottom: 6px;
+}
+
+.route-tag,
+.direction-indicator,
+.time-detail {
+    display: flex;
+    align-items: center;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    width: 100%;
+}
+
+.station {
+    display: flex;
+    align-items: center;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 1.25rem;
+    line-height: 2;
+    width: 100%;
+}
+
+.route-tag {
+    font-weight: 600;
+    background-color: transparent !important;
+}
+
+.direction-indicator {
+    margin-top: 2px;
+    color: var(--text-primary);
+}
+
+.time-detail {
+    margin-top: 2px;
+    color: var(--text-primary);
+}
+
+.station {
+    background: transparent;
+}
+
+.route-name {
+    margin-left: 4px;
+}
+
+.divider {
+    display: inline;
+    margin-right: 8px;
+    color: var(--text-tertiary);
+    font-style: italic;
+    font-weight: 600;
+}
+
+.direction-indicator {
+    display: flex;
+    align-items: center;
+    padding: 2px 6px;
+    margin-top: 2px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+/* 统一的标签样式，用于线路类型和站台编号 */
+.route-tag-label {
+    margin-left: 8px;
+    opacity: 0.8;
+    padding: 1px 6px;
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-family: inherit;
+    line-height: normal;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* 站台编号标签 - 正常粗细 */
+.station-info-label {
+    font-weight: normal;
+}
+
+/* 线路类型标签 - 粗体 */
+.line-type-label {
+    font-weight: bold;
+}
+
+/* 确保字号统一 */
+.route-name {
+    font-size: 1em;
+}
+
+.direction-indicator::before {
+    content: "→";
+    margin-right: 4px;
+    font-size: 0.9rem;
+}
+
+.time-detail {
+    display: flex;
+    align-items: center;
+    padding: 2px 6px;
+    margin-top: 2px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.time-value {
+    font-weight: 600;
+    color: var(--accent-primary);
+    margin-left: 4px;
+}
+
+/* 其他路线样式 */
+.other-routes {
+    margin-top: 8px;
+    display: flex;
+    align-items: flex-start;
+}
+
+.other-routes-label {
+    margin-right: 6px;
+    margin-top: 2px;
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
+.other-routes-list {
+    display: inline-block;
+    vertical-align: top;
+}
+
+.other-route-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-right: 4px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+    vertical-align: top;
+    background: transparent;
+}
+
+.other-route-tag:hover {
+    filter: brightness(0.85);
+}
+
+.other-route-name {
+    margin-left: 3px;
+}
+
+/* 时间戳样式 */
+.time-stamp {
+    display: flex;
+    align-items: center;
+    padding: 2px 6px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    width: 100%;
+    margin: 8px 0;
+    color: var(--text-primary);
+}
+
+.departure-time, .arrival-time {
+    font-size: 0.85rem;
+    color: var(--accent-primary);
+    font-weight: 600;
+}
+
+.route-departure-time, .route-arrival-time {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* 移动端菜单样式 */
+.mobile-menu-button {
+    display: none;
+}
+
+/* 移动端适配 */
+@media (max-width: 950px) {
+    /* 显示汉堡菜单按钮 */
+    .mobile-menu-button {
+        display: block;
+    }
+    
+    /* 默认隐藏导航链接 */
+    .nav-links {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        left: auto;
+        background-color: var(--bg-secondary);
+        box-shadow: var(--card-shadow);
+        flex-direction: column;
+        padding: 1rem;
+        gap: 0.5rem;
+        z-index: 10;
+        width: 170px;
+    }
+    
+    /* 显示导航链接 */
+    .nav-links.show {
+        display: flex;
+    }
+    
+    /* 调整导航项样式 */
+    .nav-item {
+        display: block;
+        padding: 0.5rem 1rem;
+    }
+}
+
+/* 表格样式 */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 16px;
+}
+
+th, td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+th {
+    background-color: var(--bg-tertiary);
+    font-weight: 600;
+}
+
+tr:hover {
+    background-color: var(--hover-bg);
+}
+
+/* 按钮和滑动选择器样式调整 */
+.btn-primary:hover {
+    background-color: #1d4ed8;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.algorithm-tab.active {
+    background-color: #2563eb;
+    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .time-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .card {
+        padding: 16px;
+    }
+    
+    table {
+        font-size: 14px;
+    }
+    
+    th, td {
+        padding: 6px 8px;
+    }
+}

@@ -2,144 +2,6 @@
 
 {% block head %}
 {{ super() }}
-<style>
-    /* 时刻表结果样式 */
-    #timetable-result {
-        padding: 16px;
-    }
-    
-    #timetable-result .route-card {
-        margin-bottom: 8px;
-        border-radius: 8px;
-        background-color: var(--card-bg);
-        box-shadow: var(--card-shadow);
-        border-left: 4px solid #4a90e2;
-        padding: 12px;
-    }
-    
-    #timetable-result .route-info {
-        border-left-color: #4a90e2;
-    }
-    
-    #timetable-result .route-tag {
-        background-color: transparent;
-        color: var(--text-primary);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 8px;
-    }
-    
-    #timetable-result .route-name {
-        font-weight: 600;
-        font-size: 16px;
-        color: var(--text-primary);
-    }
-    
-    #timetable-result .route-destination {
-        font-size: 14px;
-        color: var(--text-secondary);
-        margin-bottom: 4px;
-    }
-    
-    #timetable-result .route-direction {
-        font-size: 14px;
-        color: var(--text-secondary);
-        margin-bottom: 4px;
-    }
-    
-    #timetable-result .route-time {
-        font-size: 14px;
-        color: var(--accent-primary);
-        font-weight: 500;
-        margin-top: 8px;
-    }
-    
-    #timetable-result .direction-indicator {
-        display: inline-block;
-        margin-left: 8px;
-        white-space: normal;
-        flex: 1 1 0%;
-        min-width: 0px;
-        font-size: 14px;
-        color: var(--text-secondary);
-    }
-    
-    #timetable-result .time-detail {
-        margin-top: 8px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    #timetable-result .time-value {
-        font-weight: 500;
-        color: var(--text-primary);
-    }
-    
-    #timetable-result .no-result {
-        text-align: center;
-        padding: 40px 0;
-        color: var(--text-tertiary);
-    }
-    
-    #timetable-result .platform-info {
-        display: flex;
-        align-items: center;
-        flex-wrap: nowrap;
-        margin-bottom: 8px;
-    }
-    
-    #timetable-result .platform-tag {
-        margin-left: 8px;
-        opacity: 0.8;
-        padding: 1px 6px;
-        background-color: var(--bg-tertiary);
-        color: var(--text-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: bold;
-        white-space: nowrap;
-    }
-    
-    #timetable-result .icon-span {
-        margin-right: 8px;
-    }
-    
-    #timetable-result .route-type {
-        margin-left: 8px;
-        opacity: 0.8;
-        padding: 1px 6px;
-        background-color: var(--bg-tertiary);
-        color: var(--text-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: bold;
-        white-space: nowrap;
-    }
-    
-    #timetable-result .right-buttons {
-        display: flex;
-        align-items: center;
-        gap: 0;
-        margin-left: auto;
-    }
-    
-    #timetable-result .detail-btn, #timetable-result .close-btn {
-        background: none;
-        border: none;
-        cursor: pointer;
-        padding: 4px 8px;
-        border-radius: 4px;
-        transition: background-color 0.2s;
-    }
-    
-    #timetable-result .detail-btn:hover, #timetable-result .close-btn:hover {
-        background-color: var(--hover-bg);
-    }
-</style>
 {% endblock %}
 
 {% block content %}
@@ -150,15 +12,15 @@
                 <label class="block font-medium mr-2" for="shortcode" style="color: var(--text-primary);">
                     <i class="fa-solid fa-code mr-1"></i> 简码输入
                 </label>
-                <button type="button" class="text-sm hover:underline" id="shortcode-help" style="color: var(--accent-primary);">
-                    格式说明
+                <button type="button" class="detail-btn" id="shortcode-help" title="格式说明">
+                    <i class="fa-solid fa-circle-info"></i>
                 </button>
             </div>
             <div class="relative">
                 <textarea id="shortcode" class="form-input" placeholder="/时刻表 <车站名/车站ID>;<路线1>[;路线2;...]"></textarea>
             </div>
             <div id="shortcode-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div class="bg-white p-6 rounded-lg max-w-lg w-full mx-4" style="background-color: var(--card-bg); color: var(--text-primary);">
+                <div class="card p-6 rounded-lg max-w-lg w-full mx-4">
                     <h3 class="text-xl font-bold mb-4" style="color: var(--text-primary);">简码格式说明</h3>
                     <div class="space-y-4 max-h-[250px] md:max-h-[350px] lg:max-h-[400px] overflow-y-auto pr-2">
                         <div>
@@ -213,7 +75,7 @@
             
             <form id="timetable-form">
                 <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2" for="station-input">
+                    <label class="block font-medium mb-2" for="station-input">
                         <i class="fa-solid fa-map-marker-alt mr-1"></i> 车站
                     </label>
                     <div class="relative">
@@ -225,7 +87,7 @@
                 <!-- 列车时刻表特有输入框 -->
                 <div id="timetable-specific" class="block">
                     <div class="mb-4">
-                        <label class="block text-gray-700 font-medium mb-2" for="route-input">
+                        <label class="block font-medium mb-2" for="route-input">
                             <i class="fa-solid fa-route mr-1"></i> 路线名或方向编号（可选）
                         </label>
                         <input type="text" id="route-input" class="form-input" placeholder="输入路线名称或编号，多个用分号分隔">
@@ -235,7 +97,7 @@
                 <!-- 车站大屏特有输入框 -->
                 <div id="station-screen-specific" class="hidden">
                     <div class="mb-4">
-                        <label class="block text-gray-700 font-medium mb-2" for="time-input">
+                        <label class="block font-medium mb-2" for="time-input">
                             <i class="fa-solid fa-clock mr-1"></i> 时间（可选）
                         </label>
                         <input type="time" id="time-input" class="form-input" placeholder="选择时间" step="1">

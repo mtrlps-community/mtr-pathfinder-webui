@@ -7,11 +7,11 @@
         <!-- 简码功能 -->
         <div class="card mb-6">
             <div class="flex items-center mb-2">
-                <label class="block font-medium mr-2" for="shortcode" style="color: var(--text-primary);">
+                <label class="block font-medium mr-2" for="shortcode">
                     <i class="fa-solid fa-code mr-1"></i> 简码输入
                 </label>
-                <button type="button" class="text-sm hover:underline" id="shortcode-help" style="color: var(--accent-primary);">
-                    格式说明
+                <button type="button" class="detail-btn" id="shortcode-help" title="格式说明">
+                    <i class="fa-solid fa-circle-info"></i>
                 </button>
             </div>
             <div class="relative">
@@ -19,29 +19,29 @@
             </div>
             <!-- 简码格式说明弹窗 -->
             <div id="shortcode-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div class="bg-white p-6 rounded-lg max-w-lg w-full mx-4" style="background-color: var(--card-bg); color: var(--text-primary);">
-                    <h3 class="text-xl font-bold mb-4" style="color: var(--text-primary);">简码格式说明</h3>
+                <div class="card p-6 rounded-lg max-w-lg w-full mx-4">
+                    <h3 class="text-xl font-bold mb-4">简码格式说明</h3>
                     <div class="space-y-4 max-h-[250px] md:max-h-[350px] lg:max-h-[400px] overflow-y-auto pr-2">
                         <div>
-                            <h4 class="font-semibold mb-2" style="color: var(--text-primary);">调用格式：</h4>
-                            <p class="bg-gray-100 p-3 rounded break-all" style="background-color: var(--bg-tertiary); color: var(--text-primary);">/路线 <出发站>;<到达站>;[详细];[理论];[实时];[越野];[禁高铁];[禁船];[仅轻铁];[禁路线;<路线>;<路线> ...];[仅路线;<路线>;<路线> ...];[禁车站;<车站>;<车站> ...]</p>
+                            <h4 class="font-semibold mb-2">调用格式：</h4>
+                            <p class="p-3 rounded break-all" style="background-color: var(--bg-tertiary);">/路线 <出发站>;<到达站>;[详细];[理论];[实时];[越野];[禁高铁];[禁船];[仅轻铁];[禁路线;<路线>;<路线> ...];[仅路线;<路线>;<路线> ...];[禁车站;<车站>;<车站> ...]</p>
                         </div>
                         <div>
-                            <h4 class="font-semibold mb-2" style="color: var(--text-primary);">其他参数：</h4>
-                            <ul class="list-disc pl-5 space-y-2" style="color: var(--text-secondary);">
-                                <li><strong style="color: var(--text-primary);">默认</strong> -> 实际能坐的最快路线（计算等车时间）</li>
-                                <li><strong style="color: var(--text-primary);">详细</strong> -> 输出详细信息，包括线路交路的发车间隔以及每一站的等车时间</li>
-                                <li><strong style="color: var(--text-primary);">理论</strong> -> 理论最快路线，不考虑线路上是否有车在跑</li>
-                                <li><strong style="color: var(--text-primary);">实时</strong> -> 实时寻路（仅适用于MTR 4.0服务器）</li>
-                                <li><strong style="color: var(--text-primary);">越野</strong> -> 允许在两个车站间步行（出站换乘），默认最大范围为 1500 格</li>
-                                <li><strong style="color: var(--text-primary);">禁路线</strong> -> 禁止使用指定路线，可添加多条路线</li>
-                                <li><strong style="color: var(--text-primary);">仅路线</strong> -> 只能使用指定路线，可添加多条路线</li>
-                                <li><strong style="color: var(--text-primary);">禁车站</strong> -> 禁止经过指定车站，可添加多个车站</li>
+                            <h4 class="font-semibold mb-2">其他参数：</h4>
+                            <ul class="list-disc pl-5 space-y-2">
+                                <li><strong>默认</strong> -> 实际能坐的最快路线（计算等车时间）</li>
+                                <li><strong>详细</strong> -> 输出详细信息，包括线路交路的发车间隔以及每一站的等车时间</li>
+                                <li><strong>理论</strong> -> 理论最快路线，不考虑线路上是否有车在跑</li>
+                                <li><strong>实时</strong> -> 实时寻路（仅适用于MTR 4.0服务器）</li>
+                                <li><strong>越野</strong> -> 允许在两个车站间步行（出站换乘），默认最大范围为 1500 格</li>
+                                <li><strong>禁路线</strong> -> 禁止使用指定路线，可添加多条路线</li>
+                                <li><strong>仅路线</strong> -> 只能使用指定路线，可添加多条路线</li>
+                                <li><strong>禁车站</strong> -> 禁止经过指定车站，可添加多个车站</li>
                             </ul>
                         </div>
                         <div>
-                            <h4 class="font-semibold mb-2" style="color: var(--text-primary);">注意事项：</h4>
-                            <ul class="list-disc pl-5 space-y-2" style="color: var(--text-secondary);">
+                            <h4 class="font-semibold mb-2">注意事项：</h4>
+                            <ul class="list-disc pl-5 space-y-2">
                                 <li>&lt;&gt; 必填，[] 选填</li>
                                 <li>“；”和“;”（全角和半角分号） 都可以使用</li>
                             </ul>
@@ -60,7 +60,7 @@
             <form id="route-form">
                 <!-- 起点站 -->
                 <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2" for="start-station">
+                    <label class="block font-medium mb-2" for="start-station">
                         <i class="fa-solid fa-map-marker-alt mr-1"></i> 起点站
                     </label>
                     <div class="relative">
@@ -71,7 +71,7 @@
                 
                 <!-- 终点站 -->
                 <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2" for="end-station">
+                    <label class="block font-medium mb-2" for="end-station">
                         <i class="fa-solid fa-flag mr-1"></i> 终点站
                     </label>
                     <div class="relative">
@@ -82,7 +82,7 @@
                 
                 <!-- 禁路线 -->
                 <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2" for="ignored-lines">
+                    <label class="block font-medium mb-2" for="ignored-lines">
                         <i class="fa-solid fa-ban mr-1"></i> 禁路线（分号分隔）
                     </label>
                     <textarea id="ignored-lines" name="ignored_lines" class="form-input" placeholder="输入要禁止的路线，以分号分隔"></textarea>
@@ -90,7 +90,7 @@
                 
                 <!-- 仅路线 -->
                 <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2" for="only-routes">
+                    <label class="block font-medium mb-2" for="only-routes">
                         <i class="fa-solid fa-check-circle mr-1"></i> 仅路线（分号分隔）
                     </label>
                     <textarea id="only-lines" name="only_lines" class="form-input" placeholder="输入只能经过的路线，以分号分隔"></textarea>
@@ -98,16 +98,16 @@
                 
                 <!-- 禁车站 -->
                 <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2" for="avoid-stations">
-                        <i class="fa-solid fa-ban mr-1"></i> 禁车站（分号分隔）
+                    <label class="block font-medium mb-2" for="ignored-stations">
+                        <i class="fa-solid fa-times-circle mr-1"></i> 禁车站（分号分隔）
                     </label>
                     <textarea id="avoid-stations" name="avoid_stations" class="form-input" placeholder="输入要避开的车站，以分号分隔"></textarea>
                 </div>
                 
                 <!-- 出发时间（仅实时模式） -->
                 <div class="mb-4" id="dep-time-container">
-                    <label class="block text-gray-700 font-medium mb-2" for="dep-time">
-                        <i class="fa-solid fa-clock mr-1"></i> 出发时间
+                    <label class="block font-medium mb-2" for="departure-time">
+                        <i class="fa-solid fa-clock mr-1"></i> 出发时间（可选）
                     </label>
                     <p class="text-sm text-gray-500 mb-2">指定一个具体的出发时间，如果留空则设为当前时间后10秒</p>
                     <input type="time" id="dep-time" class="form-input" placeholder="选择出发时间" step="1">

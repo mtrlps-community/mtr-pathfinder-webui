@@ -2,10 +2,10 @@
 
 {% block content %}
 <div class="card">
-    <h2 class="text-2xl font-bold mb-6">车站列表 <span class="text-sm text-gray-500 font-normal">（共 {{ stations|length }} 个车站）</span></h2>
+    <h2 class="text-2xl font-bold mb-4">车站列表 <span class="text-sm font-normal" style="color: var(--text-secondary);">（共 {{ stations|length }} 个车站）</span></h2>
     
     <!-- 搜索、排序和显示选项 -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
         <div class="relative w-full md:w-64">
             <textarea id="station-search" placeholder="搜索车站名称" class="form-input pl-10"></textarea>
             <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
@@ -40,44 +40,16 @@
                 </tr>
             </thead>
             <tbody id="station-table-body">
-                {% if stations %}
-                    {% for station in stations %}
-                        <tr>
-                            <td class="col-id whitespace-nowrap" style="width: 150px;">
-                                {{ station.get('id', 'N/A') }}
-                            </td>
-                            <td class="col-name font-medium">
-                                <a href="/stations/{{ station.get('id', 'N/A') }}">
-                                    {{ station.get('name', 'N/A') }}
-                                </a>
-                            </td>
-                            <td class="col-lines whitespace-nowrap" style="width: 100px;">
-                                {{ station.get('line_count', 0) }}
-                            </td>
-                            <td class="col-lines whitespace-nowrap" style="width: 100px;">
-                                {{ station.get('branch_count', 0) }}
-                            </td>
-                            <td class="col-timetable whitespace-nowrap" style="width: 100px;">
-                                {% if station.get('short_id') is not none %}
-                                    <a href="/timetable/station/{{ station.get('short_id') }}" class="text-blue-600 hover:underline">
-                                        <i class="fa-solid fa-clock"></i> 车站{{ station.get('short_id') }}
-                                    </a>
-                                {% else %}
-                                    <span class="text-gray-400">N/A</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="5" class="py-12 text-center" style="color: var(--text-tertiary);">
-                            <i class="fa-solid fa-map-marker-alt text-3xl mb-2"></i>
-                            <p>暂无车站数据，请先在控制台更新数据</p>
-                        </td>
-                    </tr>
-                {% endif %}
+                <!-- 由JavaScript动态渲染 -->
             </tbody>
         </table>
+    </div>
+    
+    <!-- 展开按钮 -->
+    <div id="expand-stations-container" class="text-center mt-4 hidden">
+        <button id="expand-stations-btn" class="btn-secondary">
+            <i class="fa-solid fa-chevron-down mr-1"></i> 展开剩余 <span id="remaining-stations-count"></span> 个车站
+        </button>
     </div>
 </div>
 {% endblock %}
@@ -180,31 +152,33 @@
                 </tr>
             `).join('');
             
-            // 如果还有剩余车站，添加展开按钮
-            if (filteredStations.length > stationsPerPage && !showAllStations) {
-                rows += `
-                    <tr>
-                        <td colspan="5" class="py-4 text-center">
-                            <button id="expand-stations-btn" class="btn-secondary">
-                                <i class="fa-solid fa-chevron-down mr-1"></i> 展开剩余 ${filteredStations.length - stationsPerPage} 个车站
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }
-            
             tbody.innerHTML = rows;
             
-            // 添加展开按钮事件监听器
-            const expandBtn = document.getElementById('expand-stations-btn');
-            if (expandBtn) {
-                expandBtn.addEventListener('click', () => {
-                    showAllStations = true;
-                    renderTable();
-                });
+            // 显示/隐藏展开按钮
+            const expandContainer = document.getElementById('expand-stations-container');
+            const remainingCount = document.getElementById('remaining-stations-count');
+            if (filteredStations.length > stationsPerPage && !showAllStations) {
+                remainingCount.textContent = filteredStations.length - stationsPerPage;
+                expandContainer.classList.remove('hidden');
+            } else {
+                expandContainer.classList.add('hidden');
             }
         }
     }
+    
+    // 页面加载时添加展开按钮事件监听器
+    document.addEventListener('DOMContentLoaded', () => {
+        const expandBtn = document.getElementById('expand-stations-btn');
+        if (expandBtn) {
+            expandBtn.addEventListener('click', () => {
+                showAllStations = true;
+                renderTable();
+            });
+        }
+        
+        // 初始渲染表格
+        renderTable();
+    });
     
     // 切换ID显示状态
     function toggleIdDisplay() {

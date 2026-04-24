@@ -15,7 +15,7 @@
         
         <form method="post" action="/admin">
             <div class="mb-4">
-                <label class="block text-gray-700 font-medium mb-2" for="password">
+                <label class="block font-medium mb-2" for="password">
                     <i class="fa-solid fa-lock mr-1"></i> 密码
                 </label>
                 <input type="password" id="password" name="password" class="form-input" placeholder="输入控制台密码" required>
@@ -47,7 +47,7 @@
             <div class="space-y-6">
                 <!-- 地图链接设置 -->
                 <div>
-                    <label class="block text-gray-700 font-medium mb-2" for="link-input">
+                    <label class="block font-medium mb-2" for="link-input">
                         <i class="fa-solid fa-link mr-1"></i> 地图链接 (LINK)
                     </label>
                     <textarea id="link-input" class="form-input" placeholder="输入MTR模组在线线路图网址">{{ config['LINK'] }}</textarea>
@@ -55,7 +55,7 @@
                 
                 <!-- MTR版本设置 -->
                 <div>
-                    <label class="block text-gray-700 font-medium mb-2" for="mtr-ver-select">
+                    <label class="block font-medium mb-2" for="mtr-ver-select">
                         <i class="fa-solid fa-code-fork mr-1"></i> MTR模组版本 (MTR_VER)
                     </label>
                     <div class="algorithm-tabs">
@@ -69,73 +69,73 @@
                 
                 <!-- 最大越野距离 -->
                 <div>
-                    <label class="block text-gray-700 font-medium mb-2" for="max-wild-blocks">
+                    <label class="block font-medium mb-2" for="max-wild-blocks">
                         <i class="fa-solid fa-map-marker-alt mr-1"></i> 最大越野距离 (MAX_WILD_BLOCKS)
                     </label>
-                    <p class="text-sm text-gray-500 mb-2">两个站点之间非出站换乘（越野）的最远步行距离，默认值为1500</p>
+                    <p class="text-sm mb-2">两个站点之间非出站换乘（越野）的最远步行距离，默认值为1500</p>
                     <input type="number" id="max-wild-blocks" class="form-input" value="{{ config['MAX_WILD_BLOCKS'] }}" min="0">
                 </div>
                 
                 <!-- 最大寻路小时数 -->
                 <div>
-                    <label class="block text-gray-700 font-medium mb-2" for="max-hour">
+                    <label class="block font-medium mb-2" for="max-hour">
                         <i class="fa-solid fa-clock mr-1"></i> 最大寻路小时数 (MAX_HOUR)
                     </label>
-                    <p class="text-sm text-gray-500 mb-2">实时寻路模式下，计算的最大小时数，默认值为3</p>
+                    <p class="text-sm mb-2">实时寻路模式下，计算的最大小时数，默认值为3</p>
                     <input type="number" id="max-hour" class="form-input" value="{{ config['MAX_HOUR'] }}" min="1" max="24">
                 </div>
                 
                 <!-- 出站换乘增加 -->
                 <div>
-                    <label class="block text-gray-700 font-medium mb-2" for="transfer-addition">
+                    <label class="block font-medium mb-2" for="transfer-addition">
                         <i class="fa-solid fa-right-left mr-1"></i> 出站换乘定义 (TRANSFER_ADDITION)
                     </label>
-                    <p class="text-sm text-gray-500 mb-2">手动增加出站换乘，格式："车站": ["出站换乘的车站", ...], ...</p>
+                    <p class="text-sm mb-2">手动增加出站换乘，格式："车站": ["出站换乘的车站", ...], ...</p>
                     <textarea id="transfer-addition" class="form-input" placeholder='JSON格式，例如：{"车站1": ["车站2", "车站3"], "车站4": ["车站5"]}'>{{ config['TRANSFER_ADDITION']|tojson }}</textarea>
                 </div>
                 
                 <!-- 非出站换乘增加 -->
                 <div>
-                    <label class="block text-gray-700 font-medium mb-2" for="wild-addition">
+                    <label class="block font-medium mb-2" for="wild-addition">
                         <i class="fa-solid fa-tree mr-1"></i> 非出站换乘定义 (WILD_ADDITION)
                     </label>
-                    <p class="text-sm text-gray-500 mb-2">手动增加非出站换乘（越野），格式："车站": ["非出站换乘的车站", ...], ...</p>
+                    <p class="text-sm mb-2">手动增加非出站换乘（越野），格式："车站": ["非出站换乘的车站", ...], ...</p>
                     <textarea id="wild-addition" class="form-input" placeholder='JSON格式，例如：{"车站1": ["车站2", "车站3"], "车站4": ["车站5"]}'>{{ config['WILD_ADDITION']|tojson }}</textarea>
                 </div>
                 
                 <!-- 车站名称映射 -->
                 <div>
-                    <label class="block text-gray-700 font-medium mb-2" for="station-table">
+                    <label class="block font-medium mb-2" for="station-table">
                         <i class="fa-solid fa-table mr-1"></i> 车站名称映射 (STATION_TABLE)
                     </label>
-                    <p class="text-sm text-gray-500 mb-2">车站昵称到实际名称的映射，格式："车站昵称": "车站实际名称", ...</p>
+                    <p class="text-sm mb-2">车站昵称到实际名称的映射，格式："车站昵称": "车站实际名称", ...</p>
                     <textarea id="station-table" class="form-input" placeholder='JSON格式，例如：{"车站昵称": "车站实际名称", "昵称2": "实际名称2"}'>{{ config['STATION_TABLE']|tojson }}</textarea>
                 </div>
                 
                 <!-- 禁止乘坐的路线 -->
                 <div>
-                    <label class="block text-gray-700 font-medium mb-2" for="original-ignored-lines">
+                    <label class="block font-medium mb-2" for="original-ignored-lines">
                         <i class="fa-solid fa-ban mr-1"></i> 全局禁路线 (ORIGINAL_IGNORED_LINES)
                     </label>
-                    <p class="text-sm text-gray-500 mb-2">未开通或禁止乘坐的路线列表，格式：["线路1", "线路2", ...]</p>
+                    <p class="text-sm mb-2">未开通或禁止乘坐的路线列表，格式：["线路1", "线路2", ...]</p>
                     <textarea id="original-ignored-lines" class="form-input" placeholder='JSON格式数组，例如：["线路1", "线路2"]'>{{ config['ORIGINAL_IGNORED_LINES']|tojson }}</textarea>
                 </div>
                 
                 <!-- Umami统计脚本URL -->
                 <div>
-                    <label class="block text-gray-700 font-medium mb-2" for="umami-script-url">
+                    <label class="block font-medium mb-2" for="umami-script-url">
                         <i class="fa-solid fa-chart-bar mr-1"></i> Umami脚本URL (UMAMI_SCRIPT_URL)
                     </label>
-                    <p class="text-sm text-gray-500 mb-2">Umami统计脚本的URL，例如：https://cloud.umami.is/script.js</p>
+                    <p class="text-sm mb-2">Umami统计脚本的URL，例如：https://cloud.umami.is/script.js</p>
                     <textarea id="umami-script-url" class="form-input" placeholder="输入Umami脚本URL">{{ config['UMAMI_SCRIPT_URL'] }}</textarea>
                 </div>
                 
                 <!-- Umami网站ID -->
                 <div>
-                    <label class="block text-gray-700 font-medium mb-2" for="umami-website-id">
+                    <label class="block font-medium mb-2" for="umami-website-id">
                         <i class="fa-solid fa-id-card mr-1"></i> Umami网站ID (UMAMI_WEBSITE_ID)
                     </label>
-                    <p class="text-sm text-gray-500 mb-2">Umami统计的网站ID，例如：12345678-1234-1234-1234-123456789012</p>
+                    <p class="text-sm mb-2">Umami统计的网站ID，例如：12345678-1234-1234-1234-123456789012</p>
                     <textarea id="umami-website-id" class="form-input" placeholder="输入Umami网站ID">{{ config['UMAMI_WEBSITE_ID'] }}</textarea>
                 </div>
                 

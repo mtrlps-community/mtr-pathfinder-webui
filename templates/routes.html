@@ -2,10 +2,10 @@
 
 {% block content %}
 <div class="card">
-    <h2 class="text-2xl font-bold mb-6">线路列表 <span class="text-sm text-gray-500 font-normal">（共 {{ line_count }} 条线路，{{ branch_count }} 条交路）</span></h2>
+    <h2 class="text-2xl font-bold mb-4">线路列表 <span class="text-sm font-normal" style="color: var(--text-secondary);">（共 {{ line_count }} 条线路，{{ branch_count }} 条交路）</span></h2>
     
     <!-- 搜索、筛选和列选择 -->
-    <div class="space-y-4 mb-6">
+    <div class="space-y-4 mb-4">
         <!-- 搜索和排序 -->
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div class="relative w-full md:w-64">
@@ -26,8 +26,6 @@
                 <i class="fa-solid fa-eye-slash"></i> 显示ID
             </button>
         </div>
-        
-
     </div>
     
     <!-- 线路表格 -->
@@ -42,38 +40,16 @@
                 </tr>
             </thead>
             <tbody id="route-table-body">
-                {% if routes %}
-                    {% for route in routes %}
-                        <tr>
-                            <td class="col-id whitespace-nowrap" style="width: 150px;">
-                                {{ route.get('id', 'N/A') }}
-                            </td>
-                            <td class="col-name font-medium">
-                                <a href="/routes/{{ route.get('id', '') }}">
-                                    {{ route.get('name', 'N/A') }}
-                                </a>
-                            </td>
-                            <td class="col-route-number" style="width: 225px; word-wrap: break-word; word-break: break-all;">
-                                {% if route.get('number') %}
-                                    <span class="text-xs px-2 py-0.5 rounded-full mr-2" style="background-color: var(--bg-primary); color: var(--text-primary);">{{ route.get('number') }}</span>
-                                {% endif %}
-                                {{ route.get('route_number', '') }}
-                            </td>
-                            <td class="col-stations whitespace-nowrap" style="width: 100px;">
-                                {{ route.get('station_count', 0) }}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="4" class="py-12 text-center" style="color: var(--text-tertiary);">
-                            <i class="fa-solid fa-train text-3xl mb-2"></i>
-                            <p>暂无线路数据，请先在控制台更新数据</p>
-                        </td>
-                    </tr>
-                {% endif %}
+                <!-- 由JavaScript动态渲染 -->
             </tbody>
         </table>
+    </div>
+    
+    <!-- 展开按钮 -->
+    <div id="expand-routes-container" class="text-center mt-4 hidden">
+        <button id="expand-routes-btn" class="btn-secondary">
+            <i class="fa-solid fa-chevron-down mr-1"></i> 展开剩余 <span id="remaining-routes-count"></span> 条交路
+        </button>
     </div>
 </div>
 {% endblock %}
@@ -179,31 +155,33 @@
                 </tr>
             `).join('');
             
-            // 如果还有剩余线路，添加展开按钮
-            if (filteredRoutes.length > routesPerPage && !showAllRoutes) {
-                rows += `
-                    <tr>
-                        <td colspan="4" class="py-4 text-center">
-                            <button id="expand-routes-btn" class="btn-secondary">
-                                <i class="fa-solid fa-chevron-down mr-1"></i> 展开剩余 ${filteredRoutes.length - routesPerPage} 条交路
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }
-            
             tbody.innerHTML = rows;
             
-            // 添加展开按钮事件监听器
-            const expandBtn = document.getElementById('expand-routes-btn');
-            if (expandBtn) {
-                expandBtn.addEventListener('click', () => {
-                    showAllRoutes = true;
-                    renderTable();
-                });
+            // 显示/隐藏展开按钮
+            const expandContainer = document.getElementById('expand-routes-container');
+            const remainingCount = document.getElementById('remaining-routes-count');
+            if (filteredRoutes.length > routesPerPage && !showAllRoutes) {
+                remainingCount.textContent = filteredRoutes.length - routesPerPage;
+                expandContainer.classList.remove('hidden');
+            } else {
+                expandContainer.classList.add('hidden');
             }
         }
     }
+    
+    // 页面加载时添加展开按钮事件监听器
+    document.addEventListener('DOMContentLoaded', () => {
+        const expandBtn = document.getElementById('expand-routes-btn');
+        if (expandBtn) {
+            expandBtn.addEventListener('click', () => {
+                showAllRoutes = true;
+                renderTable();
+            });
+        }
+        
+        // 初始渲染表格
+        renderTable();
+    });
     
     // 切换ID显示状态
     function toggleIdDisplay() {
