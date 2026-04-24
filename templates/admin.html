@@ -153,9 +153,6 @@
                         <button id="clear-cache" class="btn-red">
                             <i class="fa-solid fa-trash mr-2"></i> 清除寻路缓存
                         </button>
-                        <button id="clear-images" class="btn-red">
-                            <i class="fa-solid fa-image mr-2"></i> 清除结果图片
-                        </button>
                     </div>
                     
                     <!-- 数据更新进度条 -->
@@ -498,36 +495,6 @@
         } catch (error) {
             showStatus('清除缓存失败，请稍后重试', false);
             console.error('清除缓存错误:', error);
-        } finally {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
-    });
-    
-    // 清除寻路结果图片按钮事件监听
-    document.getElementById('clear-images').addEventListener('click', async () => {
-        const btn = document.getElementById('clear-images');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> 清除中...';
-        btn.disabled = true;
-        
-        try {
-            const response = await fetch('/api/clear_images', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            const result = await response.json();
-            if (response.ok && result.success) {
-                showStatus('寻路结果图片清除成功');
-            } else {
-                showStatus(result.error || '清除寻路结果图片失败', false);
-            }
-        } catch (error) {
-            showStatus('清除寻路结果图片失败，请稍后重试', false);
-            console.error('清除寻路结果图片错误:', error);
         } finally {
             btn.innerHTML = originalText;
             btn.disabled = false;

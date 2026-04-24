@@ -117,6 +117,38 @@ a:hover {
     background-color: var(--hover-bg);
 }
 
+.btn-green {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    background-color: var(--accent-secondary);
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-green:hover {
+    background-color: #059669;
+}
+
+.btn-red {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    background-color: var(--color-red);
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-red:hover {
+    background-color: #b91c1c;
+}
+
 /* 卡片样式 */
 .card {
     background-color: var(--card-bg);

@@ -128,16 +128,15 @@
                 <p style="color: var(--text-tertiary);">在左侧填写车站信息或输入简码，点击"查询"开始查询</p>
             </div>
 
-            <div id="loading" class="hidden py-12">
-                <div class="max-w-md mx-auto text-center">
-                    <i class="fa-solid fa-spinner fa-spin text-4xl mb-4" style="color: var(--accent-primary);"></i>
-                    <h3 class="text-lg font-semibold mb-2" style="color: var(--text-primary);">正在查询...</h3>
-                </div>
-            </div>
-
-            <div id="error" class="hidden px-4 py-3 rounded mb-4" style="background-color: var(--error-bg); border: 1px solid var(--error-border); color: var(--error-text);"></div>
-
             <div id="result" class="hidden">
+                <!-- 列车时刻表使用iframe -->
+                <div id="iframe-container" class="hidden">
+                    <div class="mb-2" style="color: var(--text-secondary); font-size: 14px;">
+                        <span id="current-iframe-path"></span>
+                    </div>
+                    <iframe id="result-iframe" name="result-iframe" style="width: 100%; border: none; min-height: 300px;"></iframe>
+                </div>
+                <!-- 车站大屏直接显示 -->
                 <div id="timetable-result" style="width: 100%;"></div>
             </div>
         </div>
@@ -471,12 +470,11 @@ document.addEventListener('DOMContentLoaded', function() {
     timetableForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        document.getElementById('loading').classList.remove('hidden');
         document.getElementById('initial-prompt').classList.add('hidden');
-        document.getElementById('error').classList.add('hidden');
-        document.getElementById('result').classList.add('hidden');
+        document.getElementById('result').classList.remove('hidden');
 
         const text_mode = textModeInput.value === 'true';
+        const iframe = document.getElementById('result-iframe');
 
         let requestData = {
             'text_mode': text_mode
@@ -505,40 +503,79 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const data = await response.json();
 
-            document.getElementById('loading').classList.add('hidden');
-
             if (data.error) {
-                document.getElementById('error').textContent = data.error;
-                document.getElementById('error').classList.remove('hidden');
-            } else {
-                const resultContainer = document.getElementById('timetable-result');
                 if (text_mode) {
+                    document.getElementById('timetable-result').innerHTML = `<div style="padding: 20px; color: var(--error-text);">${data.error}</div>`;
+                } else {
+                    iframe.srcdoc = `<div style="padding: 20px; color: var(--error-text);">${data.error}</div>`;
+                }
+            } else {
+                if (text_mode) {
+                    // 车站大屏：直接显示
+                    document.getElementById('iframe-container').classList.add('hidden');
+                    document.getElementById('timetable-result').classList.remove('hidden');
+                    
                     let processedResult;
                     if (data.structured_result && data.structured_result.length > 0) {
-                        // 使用结构化数据渲染卡片
                         processedResult = renderStructuredResult(data.structured_result);
                     } else {
-                        // 回退到文字结果解析
                         processedResult = processStationScreenResult(data.result);
                     }
-                    
-                    // 直接将结果插入到容器中
-                    resultContainer.innerHTML = processedResult;
+                    document.getElementById('timetable-result').innerHTML = processedResult;
                 } else {
+                    // 列车时刻表：使用iframe
+                    document.getElementById('timetable-result').classList.add('hidden');
+                    document.getElementById('iframe-container').classList.remove('hidden');
+                    
+                    // 显示路径信息
+                    if (data.path) {
+                        document.getElementById('current-iframe-path').textContent = data.path;
+                    } else {
+                        document.getElementById('current-iframe-path').textContent = '';
+                    }
+                    
                     let htmlContent = data.result;
                     htmlContent = htmlContent.replace(/\{\{\s*url_for\('static',\s*filename='([^']+)'\s*\)\s*\}\}/g, '/static/$1');
                     htmlContent = htmlContent.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
-                    // 直接将结果插入到容器中
-                    resultContainer.innerHTML = htmlContent;
+                    
+                    // 在内容最前面添加内联样式，防止iframe内部滚动
+                    const overrideStyle = '<style>html, body { height: auto !important; min-height: auto !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important; } * { overflow: hidden !important; box-sizing: border-box !important; }</style>';
+                    htmlContent = htmlContent.replace('<body>', '<body>' + overrideStyle);
+                    
+                    // 先重置iframe高度，确保能够准确计算新内容的高度
+                    iframe.style.height = '300px';
+                    
+                    iframe.srcdoc = htmlContent;
+                    
+                    // 调整iframe高度的函数
+                    const adjustIframeHeight = () => {
+                        try {
+                            const doc = iframe.contentWindow.document;
+                            const height = Math.max(
+                                doc.body.scrollHeight,
+                                doc.body.offsetHeight,
+                                doc.documentElement.scrollHeight,
+                                doc.documentElement.offsetHeight
+                            );
+                            iframe.style.height = (height) + 'px';
+                        } catch (e) {
+                            // 忽略跨域错误
+                        }
+                    };
+                    
+                    // 延迟确保内容加载后调整高度
+                    setTimeout(adjustIframeHeight, 500);
+                    
+                    // 设置onload事件，确保点击iframe内链接后能调整高度
+                    iframe.onload = adjustIframeHeight;
                 }
-                setTimeout(() => {
-                    document.getElementById('result').classList.remove('hidden');
-                }, 100);
             }
         } catch (error) {
-            document.getElementById('loading').classList.add('hidden');
-            document.getElementById('error').textContent = '请求失败: ' + error.message;
-            document.getElementById('error').classList.remove('hidden');
+            if (text_mode) {
+                document.getElementById('timetable-result').innerHTML = `<div style="padding: 20px; color: var(--error-text);">请求失败: ${error.message}</div>`;
+            } else {
+                iframe.srcdoc = `<div style="padding: 20px; color: var(--error-text);">请求失败: ${error.message}</div>`;
+            }
         }
     });
 
@@ -565,9 +602,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         document.getElementById('result').classList.add('hidden');
-        document.getElementById('error').classList.add('hidden');
-        document.getElementById('loading').classList.add('hidden');
         document.getElementById('initial-prompt').classList.remove('hidden');
+        document.getElementById('result-iframe').srcdoc = '';
+        document.getElementById('timetable-result').innerHTML = '';
     });
 
     // 渲染结构化的时刻表数据

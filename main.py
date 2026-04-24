@@ -1581,6 +1581,11 @@ def api_timetable():
                 station_name, route if isinstance(route, str) else None)
             if html is None or html is False:
                 return jsonify({'error': '未找到该车站信息'})
+            # 构建路径信息
+            path_info = f'/timetable/station/{station_name}'
+            if isinstance(route, str):
+                path_info += f'/{route}'
+            return jsonify({'result': html[0], 'text_mode': False, 'path': path_info})
         elif direction is not None:
             html = main_get_sta_directions(
                 config['LOCAL_FILE_PATH_V4'],
@@ -1600,6 +1605,8 @@ def api_timetable():
                 return jsonify({'error': '方向编号错误'})
             if html is None or html is False:
                 return jsonify({'error': '未找到该车站信息'})
+            path_info = f'/timetable/station/{station_name}/{route_names}'
+            return jsonify({'result': html[0], 'text_mode': False, 'path': path_info})
         else:
             html = main_get_sta_directions(
                 config['LOCAL_FILE_PATH_V4'],
@@ -1607,8 +1614,8 @@ def api_timetable():
                 os.path.join('templates', 'directions_template.htm'))
             if html is None:
                 return jsonify({'error': '未找到该车站信息'})
-
-        return jsonify({'result': html[0], 'text_mode': False})
+            path_info = f'/timetable/station/{station_name}'
+            return jsonify({'result': html[0], 'text_mode': False, 'path': path_info})
 
 @app.route('/api/find_route', methods=['POST'])
 def api_find_route():
