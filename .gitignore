@@ -5,3 +5,10 @@ __pycache__/
 !zbpack.json
 *.dat
 *return*
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
