@@ -1,0 +1,33 @@
+# ========================================
+# MTR Pathfinder - 纯 Workers 方案
+# (完整功能子集：车站搜索/线路信息/理论寻路)
+# ========================================
+
+name = "mtr-pathfinder-pure"
+main = "src/index.ts"
+compatibility_date = "2024-04-01"
+
+[vars]
+# MTR 模组在线地图 URL（用于拉取原始数据）
+# 注意: 数据拉取是离线执行的，Worker 运行时不访问此地址
+MTR_SOURCE_URL = "https://your-mtr-map.example.com/system-map"
+
+# 寻路时间限制（防止 CPU 超时）
+MAX_PATH_TIME_MS = "30"
+
+# 数据版本号（用于缓存失效）
+DATA_VERSION = "v1"
+
+# ========================================
+# KV 命名空间
+# ========================================
+[[kv_namespaces]]
+binding = "MTR_DATA"
+id = "your-kv-id"
+preview_id = "your-kv-id"
+
+# ========================================
+# 构建
+# ========================================
+[build]
+command = "npm run build"
