@@ -1,0 +1,42 @@
+# ========================================
+# Cloudflare Workers: 混合架构方案
+# 作用: 边缘缓存 + API 代理到 Python 后端
+# ========================================
+
+name = "mtr-pathfinder-edge"
+main = "src/index.ts"
+compatibility_date = "2024-04-01"
+
+# ========================================
+# 环境变量（部署时通过 Cloudflare 面板配置）
+# ========================================
+[vars]
+# Python 后端的实际地址（通过 Cloudflare Tunnel 暴露）
+BACKEND_ORIGIN = "https://mtr-api.example.com"
+
+# 寻路结果缓存时间（秒）
+CACHE_TTL = "3600"
+
+# 车站/线路数据缓存时间（秒）
+DATA_CACHE_TTL = "86400"
+
+# ========================================
+# KV 命名空间（用于缓存静态数据和图片）
+# ========================================
+[[kv_namespaces]]
+binding = "MTR_CACHE"
+id = "your-kv-namespace-id"
+preview_id = "your-kv-namespace-id"
+
+# ========================================
+# 构建配置
+# ========================================
+[build]
+command = "npm run build"
+
+# ========================================
+# 开发服务器配置
+# ========================================
+[dev]
+port = 8787
+local_protocol = "http"
